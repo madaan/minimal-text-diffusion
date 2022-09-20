@@ -14,13 +14,12 @@ from rounding import rounding_func, load_models, load_tokenizer
 
 from test_util import get_weights, denoised_fn_round
 
-from improved_diffusion import dist_util, logger
+import dist_util, logger
 from functools import partial
+
+from args_utils import *
 from script_util import (
-    model_and_diffusion_defaults,
     create_model_and_diffusion,
-    add_dict_to_argparser,
-    args_to_dict,
 )
 
 

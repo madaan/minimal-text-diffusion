@@ -2,23 +2,21 @@
 Train a diffusion model on images.
 """
 
-import argparse
 import json, os
 import dist_util, logger
-from improved_diffusion.resample import create_named_schedule_sampler
-from script_util import (
-    model_and_diffusion_defaults,
-    create_model_and_diffusion,
-    args_to_dict,
-    add_dict_to_argparser,
-)
-from train_util import TrainLoop
+from resample import create_named_schedule_sampler
+from script_util import create_model_and_diffusion
+from train_loop import TrainLoop
 from prep_data import parse_data_to_embeddings, get_dataloader
+import wandb
+
+
+from args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 
 from transformers import set_seed
 import os
 
-os.environ["WANDB_SILENT"] = "true"
+
 
 
 def main():
@@ -80,11 +78,11 @@ def main():
     with open(f"{args.checkpoint_path}/training_args.json", "w") as f:
         json.dump(args.__dict__, f, indent=2)
 
-    # wandb.init(
-    #     project=os.getenv("WANDB_PROJECT", "diffusion_lm"),
-    #     name=args.checkpoint_path,
-    # )
-    # wandb.config.update(args.__dict__, allow_val_change=True)
+    wandb.init(
+        project=os.getenv("WANDB_PROJECT", "minimial-text-diffusion"),
+        name=args.checkpoint_path,
+    )
+    wandb.config.update(args.__dict__, allow_val_change=True)
 
     
     logger.log("training...")
@@ -110,45 +108,6 @@ def main():
         eval_interval=args.eval_interval,
     ).run_loop()
 
-
-def create_argparser():
-    defaults = dict(
-        data_dir="",
-        schedule_sampler="uniform",
-        lr=1e-4,
-        weight_decay=0.0,
-        lr_anneal_steps=200000,
-        batch_size=1,
-        microbatch=-1,  # -1 disables microbatches
-        ema_rate="0.9999",  # comma-separated list of EMA values
-        log_interval=50,
-        save_interval=50000,
-        resume_checkpoint="",
-        use_fp16=False,
-        fp16_scale_growth=1e-3,
-        seed=101,
-        gradient_clipping=-1.0,
-        eval_interval=2000,
-        checkpoint_path="diff_models",
-        train_txt_path="data/quotes_train.txt",
-        val_txt_path="data/quotes_valid.txt",
-    )
-    text_defaults = dict(
-        modality="text",
-        emb_scale_factor=1.0,
-        in_channel=16,
-        out_channel=16,
-        noise_level=0.0,
-        cache_mode="no",
-        use_bert_tokenizer="no",
-        padding_mode="block",
-        preprocessing_num_workers=1,
-    )
-    defaults.update(model_and_diffusion_defaults())
-    defaults.update(text_defaults)
-    parser = argparse.ArgumentParser()
-    add_dict_to_argparser(parser, defaults)
-    return parser
 
 
 if __name__ == "__main__":

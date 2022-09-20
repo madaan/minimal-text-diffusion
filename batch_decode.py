@@ -32,13 +32,12 @@ for lst in full_lst:
     elif 'synth128' in lst:
         kk = 128
 
-    diffusion_steps = 1000
     noise_schedule = 'linear'
     dim = 76
     num_channels = 16
 
     out_dir = 'generation_outputs'
-    num_samples = 500
+    num_samples = 50
 
 
     COMMAND = f'python {mode}_sample.py ' \
