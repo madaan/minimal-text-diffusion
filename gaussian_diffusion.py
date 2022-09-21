@@ -44,7 +44,7 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
             lambda t: 1-np.sqrt(t + 0.0001),
         )
     elif schedule_name == "trunc_cos":
-        return betas_for_alpha_bar2(
+        return betas_for_alpha_bar_trunc_cosine(
             num_diffusion_timesteps,
             lambda t: np.cos((t + 0.1) / 1.1 * np.pi / 2) ** 2,
         )
@@ -72,7 +72,7 @@ def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
     else:
         raise NotImplementedError(f"unknown beta schedule: {schedule_name}")
 
-def betas_for_alpha_bar2(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
+def betas_for_alpha_bar_trunc_cosine(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
     """
     Create a beta schedule that discretizes the given alpha_t_bar function,
     which defines the cumulative product of (1-beta) over time from t = [0,1].
@@ -311,140 +311,6 @@ class GaussianDiffusion:
             == x_start.shape[0]
         )
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
-
-    def p_mean_variance2(
-        self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
-    ):
-        """
-        Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
-        the initial x, x_0.
-
-        :param model: the model, which takes a signal and a batch of timesteps
-                      as input.
-        :param x: the [N x C x ...] tensor at time t.
-        :param t: a 1-D Tensor of timesteps.
-        :param clip_denoised: if True, clip the denoised signal into [-1, 1].
-        :param denoised_fn: if not None, a function which applies to the
-            x_start prediction before it is used to sample. Applies before
-            clip_denoised.
-        :param model_kwargs: if not None, a dict of extra keyword arguments to
-            pass to the model. This can be used for conditioning.
-        :return: a dict with the following keys:
-                 - 'mean': the model mean output.
-                 - 'variance': the model variance output.
-                 - 'log_variance': the log of 'variance'.
-                 - 'pred_xstart': the prediction for x_0.
-        """
-        if model_kwargs is None:
-            model_kwargs = {}
-        if self.model_arch == 'conv-unet':
-            B, C = x.shape[:2]
-        else:
-            B, C = x.size(0), x.size(-1)
-        assert t.shape == (B,)
-
-        # DEBUG:
-        if 'debug_x_t' in model_kwargs:
-            flag=True
-            debug_x_t = model_kwargs.pop('debug_x_t')
-            debug_t_batch = model_kwargs.pop('debug_t_batch')
-            debug_direct_pred_eps = model_kwargs.pop('debug_direct_pred_eps')
-            debug_x_start_cycle_pred = model_kwargs.pop('debug_x_start_cycle_pred')
-        else:
-            flag=False
-        print(model_kwargs)
-        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
-
-        # DEBUG path:
-        def is_very_close(a, b):
-            return (((a - b) ** 2).mean())
-        direct_pred_eps = model(x, self._scale_timesteps(t), **model_kwargs)
-        print(is_very_close(direct_pred_eps, model_output), 'debug 01')
-        if flag:
-            print(model_kwargs)
-            print(is_very_close(debug_direct_pred_eps, model_output), 'debug 001')
-            print(is_very_close(debug_x_t, x), 'debug 005')
-            print(is_very_close(debug_t_batch.float(), t.float()), 'debug 006')
-        x_start_cycle_pred = self._predict_xstart_from_eps(x_t=x, t=t, eps=direct_pred_eps)
-
-        if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
-            if self.model_arch == 'conv-unet':
-                assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
-                # print('conv-unet')
-            else:
-                assert model_output.shape == (B, x.size(1), C * 2)
-                model_output, model_var_values = th.split(model_output, C, dim=-1)
-
-            if self.model_var_type == ModelVarType.LEARNED:
-                model_log_variance = model_var_values
-                model_variance = th.exp(model_log_variance)
-            else:
-                min_log = _extract_into_tensor(
-                    self.posterior_log_variance_clipped, t, x.shape
-                )
-                max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
-                # The model_var_values is [-1, 1] for [min_var, max_var].
-                frac = (model_var_values + 1) / 2
-                model_log_variance = frac * max_log + (1 - frac) * min_log
-                model_variance = th.exp(model_log_variance)
-        else:
-            model_variance, model_log_variance = {
-                # for fixedlarge, we set the initial (log-)variance like so
-                # to get a better decoder log likelihood.
-                ModelVarType.FIXED_LARGE: (
-                    np.append(self.posterior_variance[1], self.betas[1:]),
-                    np.log(np.append(self.posterior_variance[1], self.betas[1:])),
-                ),
-                ModelVarType.FIXED_SMALL: (
-                    self.posterior_variance,
-                    self.posterior_log_variance_clipped,
-                ),
-            }[self.model_var_type]
-            model_variance = _extract_into_tensor(model_variance, t, x.shape)
-            model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
-
-        def process_xstart(x):
-            if denoised_fn is not None:
-                print('process_xstart 1')
-                x = denoised_fn(x)
-            if clip_denoised:
-                print('process_xstart 2')
-                return x.clamp(-1, 1)
-            return x
-
-        if self.model_mean_type == ModelMeanType.PREVIOUS_X:
-            pred_xstart = process_xstart(
-                self._predict_xstart_from_xprev(x_t=x, t=t, xprev=model_output)
-            )
-            model_mean = model_output
-        elif self.model_mean_type in [ModelMeanType.START_X, ModelMeanType.EPSILON]:
-            if self.model_mean_type == ModelMeanType.START_X:
-                pred_xstart = process_xstart(model_output)
-            else:
-                print('should go here')
-                pred_xstart = process_xstart(
-                    self._predict_xstart_from_eps(x_t=x, t=t, eps=model_output)
-                )
-                print(is_very_close(x_start_cycle_pred, pred_xstart), 'debug 02')
-                if flag:
-                    print(is_very_close(debug_x_start_cycle_pred, model_output), 'debug 002')
-            model_mean, _, _ = self.q_posterior_mean_variance(
-                x_start=pred_xstart, x_t=x, t=t
-            )
-        else:
-            raise NotImplementedError(self.model_mean_type)
-
-        assert (
-            model_mean.shape == model_log_variance.shape == pred_xstart.shape == x.shape
-        )
-        print(is_very_close(x_start_cycle_pred, pred_xstart), 'debug 03')
-        return {
-            "mean": model_mean,
-            "variance": model_variance,
-            "log_variance": model_log_variance,
-            "pred_xstart": pred_xstart,
-        }
 
     def p_mean_variance(
         self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
@@ -1512,9 +1378,7 @@ class GaussianDiffusion:
                 ModelVarType.LEARNED,
                 ModelVarType.LEARNED_RANGE,
             ]:
-                
                 B, C = x_t.size(0), x_t.size(-1)
-
                 if self.model_arch == 'conv-unet':
                     assert model_output.shape == (B, C * 2, *x_t.shape[2:])
                     model_output, model_var_values = th.split(model_output, C, dim=1)
@@ -1525,8 +1389,6 @@ class GaussianDiffusion:
                     assert model_output.shape == (B, x_t.size(1), C * 2)
                     model_output, model_var_values = th.split(model_output, C, dim=-1)
                     frozen_out = th.cat([model_output.detach(), model_var_values], dim=-1)
-
-
                 terms["vb"] = self._vb_terms_bpd_e2e(
                     model=lambda *args, r=frozen_out: r,
                     x_start=x_start,

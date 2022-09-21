@@ -2,7 +2,7 @@ import argparse
 
 import gaussian_diffusion as gd
 from respace import SpacedDiffusion, space_timesteps
-from transformer_model2 import TransformerNetModel2
+from transformer_model2 import TransformerNetModel
 NUM_CLASSES = 1000
 
 
@@ -146,7 +146,7 @@ def create_model(
     for res in attention_resolutions.split(","):
         attention_ds.append(image_size // int(res))
 
-    return TransformerNetModel2(
+    return TransformerNetModel(
         in_channels=in_channel,  # 3, DEBUG**
         model_channels=num_channels,
         out_channels=(out_channel if not learn_sigma else out_channel*2),  # DEBUG**  (3 if not learn_sigma else 6),
