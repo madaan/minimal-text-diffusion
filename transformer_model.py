@@ -1,172 +1,18 @@
-from transformer_utils import BertAttention, trans_nd, layer_norm
 from transformers import AutoConfig
 
 # from transformers import BertEncoder
 from transformers.models.bert.modeling_bert import BertEncoder
 import torch
-from abc import abstractmethod
 
-import math
 
 import numpy as np
 import torch as th
 import torch.nn as nn
-import torch.nn.functional as F
-
-from fp16_util import convert_module_to_f16, convert_module_to_f32
 from nn import (
     SiLU,
-    conv_nd,
     linear,
-    avg_pool_nd,
-    zero_module,
     timestep_embedding,
-    checkpoint,
 )
-
-
-class TimestepBlock(nn.Module):
-    """
-    Any module where forward() takes timestep embeddings as a second argument.
-    """
-
-    @abstractmethod
-    def forward(self, x, emb):
-        """
-        Apply the module to `x` given `emb` timestep embeddings.
-        """
-
-
-class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
-    """
-    A sequential module that passes timestep embeddings to the children that
-    support it as an extra input.
-    """
-
-    def forward(self, x, emb):
-        for layer in self:
-            if isinstance(layer, TimestepBlock):
-                x = layer(x, emb)
-            else:
-                x = layer(x)
-        return x
-
-
-class TransSimpleBlock(TimestepBlock):
-    """
-    A residual block that can optionally change the number of channels.
-
-    :param channels: the number of input channels.
-    :param emb_channels: the number of timestep embedding channels.
-    :param dropout: the rate of dropout.
-    :param out_channels: if specified, the number of out channels.
-    :param use_conv: if True and out_channels is specified, use a spatial
-        convolution instead of a smaller 1x1 convolution to change the
-        channels in the skip connection.
-    :param dims: determines if the signal is 1D, 2D, or 3D.
-    :param use_checkpoint: if True, use gradient checkpointing on this module.
-    """
-
-    def __init__(
-        self,
-        channels,
-        emb_channels,
-        dropout,
-        out_channels=None,
-        use_conv=False,
-        use_scale_shift_norm=False,
-        dims=2,
-        use_checkpoint=False,
-        config=None,
-    ):
-        super().__init__()
-        self.channels = channels
-        self.emb_channels = emb_channels
-        self.dropout = dropout
-        self.out_channels = out_channels or channels
-        self.use_conv = use_conv
-        self.use_checkpoint = use_checkpoint
-        self.use_scale_shift_norm = use_scale_shift_norm
-
-        attention_head_size = 64
-        assert self.out_channels % attention_head_size == 0
-        self.in_layers = nn.Sequential(
-            layer_norm(channels),
-            SiLU(),
-            trans_nd(
-                config,
-                channels,
-                self.out_channels // attention_head_size,
-                attention_head_size,
-            ),
-        )
-        self.emb_layers = nn.Sequential(
-            SiLU(),
-            linear(
-                emb_channels,
-                2 * self.out_channels if use_scale_shift_norm else self.out_channels,
-            ),
-        )
-        self.out_layers = nn.Sequential(
-            layer_norm(self.out_channels),
-            SiLU(),
-            nn.Dropout(p=dropout),
-            zero_module(
-                trans_nd(
-                    config,
-                    self.out_channels,
-                    self.out_channels // attention_head_size,
-                    attention_head_size,
-                ),
-            ),
-        )
-
-        if self.out_channels == channels:
-            self.skip_connection = nn.Identity()
-        elif use_conv:
-
-            self.skip_connection = trans_nd(
-                config,
-                channels,
-                self.out_channels // attention_head_size,
-                attention_head_size,
-            )
-        else:
-            self.skip_connection = nn.Sequential(
-                nn.Linear(self.channels, self.out_channels),
-                nn.LayerNorm(self.out_channels, eps=config.layer_norm_eps),
-            )
-
-    def forward(self, x, emb):
-        """
-        Apply the block to a Tensor, conditioned on a timestep embedding.
-
-        :param x: an [N x C x ...] Tensor of features.
-        :param emb: an [N x emb_channels] Tensor of timestep embeddings.
-        :return: an [N x C x ...] Tensor of outputs.
-        """
-        return checkpoint(
-            self._forward, (x, emb), self.parameters(), self.use_checkpoint
-        )
-
-    def _forward(self, x, emb):
-        # print('-'*30)
-        # print(self.in_layers)
-        h = self.in_layers(x)
-        emb_out = self.emb_layers(emb).type(h.dtype)
-        # print(self.in_layers, h.shape, x.shape, )
-        # print(emb.shape, self.emb_layers, emb_out.shape)
-        while len(emb_out.shape) < len(h.shape):
-            emb_out = emb_out.unsqueeze(1)
-        if self.use_scale_shift_norm:
-            out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
-            scale, shift = th.chunk(emb_out, 2, dim=-1)
-            h = out_norm(h) * (1 + scale) + shift
-            h = out_rest(h)
-        else:
-            h = h + emb_out
-            h = self.out_layers(h)
-        return self.skip_connection(x) + h
 
 
 class TransformerNetModel(nn.Module):
