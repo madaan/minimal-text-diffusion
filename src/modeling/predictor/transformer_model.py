@@ -8,7 +8,7 @@ import torch
 import numpy as np
 import torch as th
 import torch.nn as nn
-from nn import (
+from src.modeling.diffusion.nn import (
     SiLU,
     linear,
     timestep_embedding,

@@ -1,8 +1,8 @@
 import argparse
 
-import gaussian_diffusion as gd
-from respace import SpacedDiffusion, space_timesteps
-from transformer_model2 import TransformerNetModel
+import src.modeling.diffusion.gaussian_diffusion as gd
+from src.modeling.diffusion.respace import SpacedDiffusion, space_timesteps
+from src.modeling.predictor.transformer_model import TransformerNetModel
 NUM_CLASSES = 1000
 
 

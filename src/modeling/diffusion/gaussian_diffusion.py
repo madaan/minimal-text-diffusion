@@ -11,8 +11,8 @@ import math
 import numpy as np
 import torch as th
 
-from nn import mean_flat
-from losses import normal_kl, discretized_gaussian_log_likelihood
+from src.modeling.diffusion.nn import mean_flat
+from src.modeling.diffusion.losses import normal_kl, discretized_gaussian_log_likelihood
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
@@ -228,44 +228,90 @@ class GaussianDiffusion:
 
         self.training_mode = training_mode
         print('training mode is ', training_mode)
-        self.mapping_func = None 
-        #
-        # if training_mode == 'e2e':
-        #     self.training_losses = self.training_losses_e2e
-        # else:
-        #     self.training_losses = self.training_losses_emb
 
-    def training_losses(self, model, *args, **kwargs):
-        return self.training_losses_actual(model, *args, **kwargs)
-        if self.training_mode == 'e2e':
-            return self.training_losses_e2e(model, *args, **kwargs)
-        elif self.training_mode == 'e2e-simple':
-            return self.training_losses_e2e_simple(model, *args, **kwargs)
-        else:
-            return self.training_losses_emb(model, *args, **kwargs)
-
-    def calc_bpd_loop(self, model, *args, **kwargs):
-        if self.training_mode == 'e2e':
-            return self.calc_bpd_loop_e2e(model, *args, **kwargs)
-        else:
-            return self.calc_bpd_loop_emb(model, *args, **kwargs)
-
-    def q_mean_variance(self, x_start, t):
+    def training_losses(self, model, x_start, t, model_kwargs=None, noise=None):
         """
-        Get the distribution q(x_t | x_0).
+        Compute training losses for a single timestep.
 
-        :param x_start: the [N x C x ...] tensor of noiseless inputs.
-        :param t: the number of diffusion steps (minus 1). Here, 0 means one step.
-        :return: A tuple (mean, variance, log_variance), all of x_start's shape.
+        :param model: the model to evaluate loss on.
+        :param x_start: the [N x C x ...] tensor of inputs.
+        :param t: a batch of timestep indices.
+        :param model_kwargs: if not None, a dict of extra keyword arguments to
+            pass to the model. This can be used for conditioning.
+        :param noise: if specified, the specific Gaussian noise to try to remove.
+        :return: a dict with the key "loss" containing a tensor of shape [N].
+                 Some mean or variance settings may also have other keys.
         """
-        mean = (
-            _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
+        assert 'input_ids' in model_kwargs
+        input_ids = model_kwargs.pop('input_ids').to(t.device)
+        x_start_mean = model.model.module.get_embeds(input_ids)
+        
+        
+
+        std = _extract_into_tensor(self.sqrt_one_minus_alphas_cumprod,
+                                   th.tensor([0]).to(x_start_mean.device),
+                                   x_start_mean.shape)
+
+        x_start = self.get_x_start(x_start_mean, std)
+        # print(x_start_mean.shape, x_start.shape)
+        if noise is None:
+            noise = th.randn_like(x_start)
+        x_t = self.q_sample(x_start, t, noise=noise) # reparametrization trick.
+        get_logits = model.model.module.get_logits
+
+        terms = {}
+
+
+        model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
+
+
+
+        target = {
+            ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
+                x_start=x_start, x_t=x_t, t=t
+            )[0],
+            ModelMeanType.START_X: x_start,
+            ModelMeanType.EPSILON: noise,
+        }[self.model_mean_type]
+        assert model_output.shape == target.shape == x_start.shape
+
+        # the usual diffusion loss
+        terms["mse"] = mean_flat((target - model_output) ** 2)
+        # print( terms["mse"])
+        model_out_x_start = self.x0_helper(model_output, x_t, t)['pred_xstart']
+        t0_mask = (t == 0)
+
+        # The embedding loss!
+        t0_loss = mean_flat((x_start_mean - model_out_x_start) ** 2)
+        # print(terms["mse"].shape, )
+        terms["mse"] = th.where(t0_mask, t0_loss, terms["mse"])
+
+        # tT_mask = (t == self.num_timesteps - 1)
+        out_mean, _, _ = self.q_mean_variance(x_start, th.LongTensor([self.num_timesteps - 1]).to(x_start.device))
+        tT_loss =  mean_flat(out_mean ** 2)
+
+        # The rounding loss
+        decoder_nll = self.token_discrete_loss(x_start, get_logits, input_ids)
+
+
+        terms["loss"] = terms["mse"] + (decoder_nll + tT_loss)
+
+        return terms
+
+    def get_x_start(self, x_start_mean, std):
+        '''
+        Using the interpolating policy OR using the convolution policy...
+        :param x_start_mean:
+        :return:
+        '''
+        noise = th.randn_like(x_start_mean)
+        # print(std.shape, noise.shape, x_start_mean.shape)
+        assert noise.shape == x_start_mean.shape
+        # print(x_start_mean.device, noise.device)
+        return (
+             x_start_mean + std * noise
         )
-        variance = _extract_into_tensor(1.0 - self.alphas_cumprod, t, x_start.shape)
-        log_variance = _extract_into_tensor(
-            self.log_one_minus_alphas_cumprod, t, x_start.shape
-        )
-        return mean, variance, log_variance
+
 
     def q_sample(self, x_start, t, noise=None):
         """
@@ -312,6 +358,47 @@ class GaussianDiffusion:
             == x_start.shape[0]
         )
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
+
+
+    def q_mean_variance(self, x_start, t):
+        """
+        Get the distribution q(x_t | x_0).
+
+        :param x_start: the [N x C x ...] tensor of noiseless inputs.
+        :param t: the number of diffusion steps (minus 1). Here, 0 means one step.
+        :return: A tuple (mean, variance, log_variance), all of x_start's shape.
+        """
+        mean = (
+            _extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
+        )
+        variance = _extract_into_tensor(1.0 - self.alphas_cumprod, t, x_start.shape)
+        log_variance = _extract_into_tensor(
+            self.log_one_minus_alphas_cumprod, t, x_start.shape
+        )
+        return mean, variance, log_variance
+
+    def token_discrete_loss(self, x_t, get_logits, input_ids):
+        if self.model_arch == 'conv-unet' or  self.model_arch == '1d-unet':
+            reshaped_x_t = x_t.view(x_t.size(0), x_t.size(1), -1).permute(0, 2, 1)
+        else:
+            # print(x_t.shape)
+            reshaped_x_t = x_t
+        logits = get_logits(reshaped_x_t)  # bsz, seqlen, vocab
+        # print(logits.shape)
+        loss_fct = th.nn.CrossEntropyLoss(reduction='none')
+        decoder_nll = loss_fct(logits.view(-1, logits.size(-1)), input_ids.view(-1)).view(input_ids.shape)
+        # print(decoder_nll.shape)
+        decoder_nll = decoder_nll.mean(dim=-1)
+        return decoder_nll
+
+
+    def calc_bpd_loop(self, model, *args, **kwargs):
+        if self.training_mode == 'e2e':
+            return self.calc_bpd_loop_e2e(model, *args, **kwargs)
+        else:
+            return self.calc_bpd_loop_emb(model, *args, **kwargs)
+
+
 
     def p_mean_variance(
         self, model, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
@@ -1170,33 +1257,7 @@ class GaussianDiffusion:
         output = kl + decoder_nll + kl_T 
         return {"output": output, "pred_xstart": out["pred_xstart"], 'kl': kl, 'decoder_nll':decoder_nll, 'kl_T':kl_T}
 
-    def get_x_start(self, x_start_mean, std):
-        '''
-        Using the interpolating policy OR using the convolution policy...
-        :param x_start_mean:
-        :return:
-        '''
-        noise = th.randn_like(x_start_mean)
-        # print(std.shape, noise.shape, x_start_mean.shape)
-        assert noise.shape == x_start_mean.shape
-        # print(x_start_mean.device, noise.device)
-        return (
-             x_start_mean + std * noise
-        )
 
-    def token_discrete_loss(self, x_t, get_logits, input_ids):
-        if self.model_arch == 'conv-unet' or  self.model_arch == '1d-unet':
-            reshaped_x_t = x_t.view(x_t.size(0), x_t.size(1), -1).permute(0, 2, 1)
-        else:
-            # print(x_t.shape)
-            reshaped_x_t = x_t
-        logits = get_logits(reshaped_x_t)  # bsz, seqlen, vocab
-        # print(logits.shape)
-        loss_fct = th.nn.CrossEntropyLoss(reduction='none')
-        decoder_nll = loss_fct(logits.view(-1, logits.size(-1)), input_ids.view(-1)).view(input_ids.shape)
-        # print(decoder_nll.shape)
-        decoder_nll = decoder_nll.mean(dim=-1)
-        return decoder_nll
 
     def x0_helper(self, model_output, x, t):
         if self.model_mean_type == ModelMeanType.PREVIOUS_X:
@@ -1216,74 +1277,6 @@ class GaussianDiffusion:
             raise NotImplementedError(self.model_mean_type)
         return {'pred_xprev':pred_prev, 'pred_xstart':pred_xstart}
 
-    def training_losses_actual(self, model, x_start, t, model_kwargs=None, noise=None):
-        """
-        Compute training losses for a single timestep.
-
-        :param model: the model to evaluate loss on.
-        :param x_start: the [N x C x ...] tensor of inputs.
-        :param t: a batch of timestep indices.
-        :param model_kwargs: if not None, a dict of extra keyword arguments to
-            pass to the model. This can be used for conditioning.
-        :param noise: if specified, the specific Gaussian noise to try to remove.
-        :return: a dict with the key "loss" containing a tensor of shape [N].
-                 Some mean or variance settings may also have other keys.
-        """
-        assert 'input_ids' in model_kwargs
-        input_ids = model_kwargs.pop('input_ids').to(t.device)
-        x_start_mean = model.model.module.get_embeds(input_ids)
-        
-        
-
-        std = _extract_into_tensor(self.sqrt_one_minus_alphas_cumprod,
-                                   th.tensor([0]).to(x_start_mean.device),
-                                   x_start_mean.shape)
-
-        x_start = self.get_x_start(x_start_mean, std)
-        # print(x_start_mean.shape, x_start.shape)
-        if noise is None:
-            noise = th.randn_like(x_start)
-        x_t = self.q_sample(x_start, t, noise=noise) # reparametrization trick.
-        get_logits = model.model.module.get_logits
-
-        terms = {}
-
-
-        model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
-
-
-
-        target = {
-            ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
-                x_start=x_start, x_t=x_t, t=t
-            )[0],
-            ModelMeanType.START_X: x_start,
-            ModelMeanType.EPSILON: noise,
-        }[self.model_mean_type]
-        assert model_output.shape == target.shape == x_start.shape
-
-        # the usual diffusion loss
-        terms["mse"] = mean_flat((target - model_output) ** 2)
-        # print( terms["mse"])
-        model_out_x_start = self.x0_helper(model_output, x_t, t)['pred_xstart']
-        t0_mask = (t == 0)
-
-        # The embedding loss!
-        t0_loss = mean_flat((x_start_mean - model_out_x_start) ** 2)
-        # print(terms["mse"].shape, )
-        terms["mse"] = th.where(t0_mask, t0_loss, terms["mse"])
-
-        # tT_mask = (t == self.num_timesteps - 1)
-        out_mean, _, _ = self.q_mean_variance(x_start, th.LongTensor([self.num_timesteps - 1]).to(x_start.device))
-        tT_loss =  mean_flat(out_mean ** 2)
-
-        # The rounding loss
-        decoder_nll = self.token_discrete_loss(x_start, get_logits, input_ids)
-
-
-        terms["loss"] = terms["mse"] + (decoder_nll + tT_loss)
-
-        return terms
 
     def _prior_bpd(self, x_start):
         """

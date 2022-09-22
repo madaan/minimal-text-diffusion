@@ -41,7 +41,7 @@ def parse_data_to_embeddings(
 
 
     sentence_list = tokenize_txt_file(txt_file_path)
-    
+    print(sentence_list[:2])
     embeddings, vocab_dict, tokenizer = create_or_load_embeddings_and_vocab(embed_dim=embed_dim, checkpoint_path=checkpoint_path, sentence_list=sentence_list)
 
 
@@ -63,6 +63,7 @@ def tokenize_txt_file(data_txt_path: str) -> List[List[str]]:
     with open(data_txt_path, "r") as file_in:
         for line in file_in:
             word_lst = [token.text for token in tokenizer(line.strip().lower())]
+            print(word_lst)
             sentence_list.append(word_lst)
     return sentence_list
 

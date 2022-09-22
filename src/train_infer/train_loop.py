@@ -9,16 +9,17 @@ import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
 
-import dist_util, logger
-from fp16_util import (
+from src.utils import dist_util, logger
+from src.utils.fp16_util import (
     make_master_params,
     master_params_to_model_params,
     model_grads_to_master_grads,
     unflatten_master_params,
     zero_grad,
 )
-from nn import update_ema
-from resample import LossAwareSampler, UniformSampler
+from src.modeling.diffusion.nn import update_ema
+from src.modeling.diffusion.resample import LossAwareSampler, UniformSampler
+
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
@@ -243,7 +244,7 @@ class TrainLoop:
             # print(micro_cond.keys())
             compute_losses = functools.partial(
                 self.diffusion.training_losses,
-                self.ddp_model,
+                self.ddp_model,  # this is the transformer model in DDP mode
                 micro,
                 t,
                 model_kwargs=micro_cond,

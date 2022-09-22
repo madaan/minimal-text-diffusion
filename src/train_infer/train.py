@@ -3,19 +3,19 @@ Train a diffusion model on images.
 """
 
 import json, os
-import dist_util, logger
-from resample import create_named_schedule_sampler
+import pathlib
+from src.utils import dist_util, logger
+from src.modeling.diffusion.resample import create_named_schedule_sampler
 from script_util import create_model_and_diffusion
 from train_loop import TrainLoop
-from prep_data import parse_data_to_embeddings, get_dataloader
+from src.utils.data_utils import parse_data_to_embeddings, get_dataloader
 import wandb
 
 
-from args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
+from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 
 from transformers import set_seed
 import os
-
 
 
 
@@ -25,11 +25,10 @@ def main():
     dist_util.setup_dist()  # DEBUG **
     logger.configure()
 
-    logger.log("creating data loader...")
+    logger.log("creating data loader")
 
-    rev_tokenizer = None
 
-    model22 = None
+    pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
     processed_data, embeddings, vocab_dict = parse_data_to_embeddings(
         txt_file_path=args.train_txt_path,
@@ -78,11 +77,15 @@ def main():
     with open(f"{args.checkpoint_path}/training_args.json", "w") as f:
         json.dump(args.__dict__, f, indent=2)
 
-    wandb.init(
-        project=os.getenv("WANDB_PROJECT", "minimial-text-diffusion"),
-        name=args.checkpoint_path,
-    )
-    wandb.config.update(args.__dict__, allow_val_change=True)
+
+    if args.is_test_run:
+        wandb.init(mode="disabled")
+    else:
+        wandb.init(
+            project=os.getenv("WANDB_PROJECT", "minimial-text-diffusion"),
+            name=args.checkpoint_path,
+        )
+        wandb.config.update(args.__dict__, allow_val_change=True)
 
     
     logger.log("training...")

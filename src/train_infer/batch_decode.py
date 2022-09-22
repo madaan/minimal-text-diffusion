@@ -40,7 +40,7 @@ for lst in full_lst:
     num_samples = 50
 
 
-    COMMAND = f'python {mode}_sample.py ' \
+    COMMAND = f'python src/train_infer/{mode}_sample.py ' \
     f'--model_path {tgt} --batch_size 50 --num_samples {num_samples} --top_p {top_p} ' \
     f'--out_dir {out_dir} '
     print("Running decode")

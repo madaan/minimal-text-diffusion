@@ -10,7 +10,7 @@ def create_argparser():
         schedule_sampler="uniform",
         lr=1e-4,
         weight_decay=0.0,
-        lr_anneal_steps=20000,
+        lr_anneal_steps=30000,
         batch_size=1,
         microbatch=-1,  # -1 disables microbatches
         ema_rate="0.9999",  # comma-separated list of EMA values
@@ -40,6 +40,8 @@ def create_argparser():
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
     parser = argparse.ArgumentParser()
+    parser.add_argument("--is_test_run", action="store_true")
+
     add_dict_to_argparser(parser, defaults)
     return parser
 

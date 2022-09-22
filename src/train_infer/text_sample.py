@@ -10,15 +10,15 @@ import numpy as np
 import torch as th
 import torch.distributed as dist
 from transformers import set_seed
-from rounding import rounding_func, load_models, load_tokenizer
+from src.modeling.diffusion.rounding import rounding_func, load_models, load_tokenizer
 
-from test_util import get_weights, denoised_fn_round
+from src.utils.test_util import get_weights, denoised_fn_round
 
-import dist_util, logger
+from src.utils import dist_util, logger
 from functools import partial
 
-from args_utils import *
-from script_util import (
+from src.utils.args_utils import *
+from src.train_infer.script_util import (
     create_model_and_diffusion,
 )
 
