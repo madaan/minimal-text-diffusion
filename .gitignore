@@ -1,3 +1,10 @@
+# Logging
+
+wandb/
+checkpoints/
+generation_outputs
+diff_models
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
