@@ -4,6 +4,9 @@ Utilities for command line arguments.
 
 import argparse
 
+from modeling.diffusion.nn import checkpoint
+
+
 def create_argparser():
     defaults = dict(
         data_dir="",
@@ -39,12 +42,12 @@ def create_argparser():
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
+    defaults.update(decoding_defaults())
     parser = argparse.ArgumentParser()
     parser.add_argument("--is_test_run", action="store_true")
 
     add_dict_to_argparser(parser, defaults)
     return parser
-
 
 
 def model_and_diffusion_defaults():
@@ -54,7 +57,6 @@ def model_and_diffusion_defaults():
     return dict(
         image_size=64,
         num_channels=16,
-        num_res_blocks=2,
         num_heads=4,
         num_heads_upsample=-1,
         attention_resolutions="16,8",
@@ -71,14 +73,32 @@ def model_and_diffusion_defaults():
         rescale_learned_sigmas=True,
         use_checkpoint=False,
         use_scale_shift_norm=True,
-        model_arch='trans-unet',
+        model_arch="trans-unet",
         in_channel=16,
         out_channel=16,
-        training_mode='e2e',
+        training_mode="e2e",
         vocab_size=66,
-        config_name='bert-base-uncased',
-        experiment_mode='lm',
+        config_name="bert-base-uncased",
+        experiment_mode="lm",
         logits_mode=1,
+    )
+
+
+def decoding_defaults():
+    return dict(
+        num_samples=50,
+        top_p=0.9,
+        out_dir="",
+        model_name_or_path="",
+        checkpoint_path="",
+        use_ddim=False,
+        clip_denoised=False,
+        batch_size=64,
+        mbr_sample=1,
+        verbose="yes",
+        clamp="clamp",
+        preprocessing_num_workers=1,
+        emb_scale_factor=1.0,
     )
 
 

@@ -13,7 +13,6 @@ def create_model_and_diffusion(
     learn_sigma,
     sigma_small,
     num_channels,
-    num_res_blocks,
     num_heads,
     num_heads_upsample,
     attention_resolutions,
@@ -40,7 +39,6 @@ def create_model_and_diffusion(
     model = create_model(
         image_size,
         num_channels,
-        num_res_blocks,
         learn_sigma=learn_sigma,
         class_cond=class_cond,
         use_checkpoint=use_checkpoint,
@@ -77,7 +75,6 @@ def create_model_and_diffusion(
 def create_model(
     image_size,
     num_channels,
-    num_res_blocks,
     learn_sigma,
     class_cond,
     use_checkpoint,
@@ -116,7 +113,6 @@ def create_model(
         in_channels=in_channel,  # 3, DEBUG**
         model_channels=num_channels,
         out_channels=(out_channel if not learn_sigma else out_channel*2),  # DEBUG**  (3 if not learn_sigma else 6),
-        num_res_blocks=num_res_blocks,
         attention_resolutions=tuple(attention_ds),
         dropout=dropout,
         channel_mult=channel_mult,
