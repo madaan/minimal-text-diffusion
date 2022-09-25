@@ -7,16 +7,16 @@ import torch
 # from custom_trainer import GPT2LMHeadModelCompress, BERTModelCompress, AutoEncoderWithNoise
 import json
 
-def load_models(modality, mode, model_name_or_path, emb_dim, file, extra_args=None):
+def load_embeddings_and_tokenizer(modality=None, mode=None, model_name_or_path=None, emb_dim=None, checkpoint_path=None, extra_args=None):
 
-    path_save_tokenizer = '{}/vocab.json'.format(file)
+    path_save_tokenizer = '{}/vocab.json'.format(checkpoint_path)
     print(f'loading from {path_save_tokenizer}')
     with open(path_save_tokenizer, 'r') as f:
         vocab = json.load(f)
     print(len(vocab))
     tokenizer = {v: k for k, v in vocab.items()}
     model = torch.nn.Embedding(len(tokenizer), emb_dim)
-    path_save = '{}/random_emb.torch'.format(file)
+    path_save = '{}/random_emb.torch'.format(checkpoint_path)
     model.load_state_dict(torch.load(path_save))
 
     return model, tokenizer
