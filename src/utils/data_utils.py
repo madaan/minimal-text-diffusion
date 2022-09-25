@@ -41,7 +41,6 @@ def parse_data_to_embeddings(
 
 
     sentence_list = tokenize_txt_file(txt_file_path)
-    print(sentence_list[:2])
     embeddings, vocab_dict, tokenizer = create_or_load_embeddings_and_vocab(embed_dim=embed_dim, checkpoint_path=checkpoint_path, sentence_list=sentence_list)
 
 
@@ -57,19 +56,18 @@ def tokenize_txt_file(data_txt_path: str) -> List[List[str]]:
     nlp = English()
     tokenizer = nlp.tokenizer
 
-    print(f"loading dataset from simple {data_txt_path}")
+    print(f"loading dataset from {data_txt_path}")
     sentence_list = []
 
     with open(data_txt_path, "r") as file_in:
         for line in file_in:
             word_lst = [token.text for token in tokenizer(line.strip().lower())]
-            print(word_lst)
             sentence_list.append(word_lst)
     return sentence_list
 
 
 def create_or_load_embeddings_and_vocab(
-    embed_dim: int, checkpoint_path: str, sentence_list: List[List[str]], tok_frequency_thresh: int = 1
+    embed_dim: int, checkpoint_path: str, sentence_list: List[List[str]], tok_frequency_thresh: int = 5
 ):
     """
     Check if the embeddings and vocab already exist, if not, creates them using the sentence_list.
@@ -127,7 +125,6 @@ def load_embeddings_and_vocab(emb_dim, checkpoint_path):
     print(f"loading from {path_save_tokenizer}")
     with open(path_save_tokenizer, "r") as f:
         vocab = json.load(f)
-    print(len(vocab))
     tokenizer = {v: k for k, v in vocab.items()}
     model = torch.nn.Embedding(len(tokenizer), emb_dim)
     path_save = f"{checkpoint_path}/random_emb.torch"
@@ -170,8 +167,7 @@ def helper_tokenize_encode(sentence_list: List[List[int]], vocab_dict: dict, emb
             tokenized_ = [vocab_dict.get(x, vocab_dict["UNK"]) for x in input_ids]
             input_ids = [0] + tokenized_ + [1]
             group_lst["word_ids"].append(input_ids)
-        print(group_lst["word_ids"][:2])
-
+        
         # if padding_mode == 'block':
         group_lst["word_ids"] = _collate_batch_helper(
             group_lst["word_ids"], vocab_dict["PAD"], seqlen
@@ -229,7 +225,6 @@ class TextDataset(Dataset):
         self.model_arch = model_arch
         self.noise_level = noise_level
         self.is_conditional_gen = is_conditional_gen
-        print(self.resolution)
         self.eigen_transform = eigen_transform
         self.mapping_func = mapping_func
         self.model_emb = model_emb

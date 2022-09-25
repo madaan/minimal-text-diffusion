@@ -73,7 +73,7 @@ def main():
     while len(all_samples) * args.batch_size < args.num_samples:
         model_kwargs = {}
         sample_fn = diffusion.p_sample_loop if not args.use_ddim else diffusion.ddim_sample_loop
-        sample_shape = (args.batch_size, args.image_size, args.in_channel)
+        sample_shape = (args.batch_size, args.sequence_len, args.in_channel)
         print(sample_shape)
         sample = sample_fn(
             model,

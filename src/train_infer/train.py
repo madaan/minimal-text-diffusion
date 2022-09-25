@@ -32,14 +32,14 @@ def main():
 
     processed_data, embeddings, vocab_dict = parse_data_to_embeddings(
         txt_file_path=args.train_txt_path,
-        seqlen=args.image_size,  # 64
+        seqlen=args.sequence_len,  # 64
         checkpoint_path=args.checkpoint_path,
         embed_dim=args.in_channel,
     )
 
     train_dataloader = get_dataloader(
         tokenized_and_embedded_text=processed_data,
-        sequence_length=args.image_size,
+        sequence_length=args.sequence_len,
         batch_size=args.batch_size,
     )
 
@@ -47,13 +47,13 @@ def main():
 
     val_data, _, _ = parse_data_to_embeddings(
         txt_file_path=args.val_txt_path,
-        seqlen=args.image_size,
+        seqlen=args.sequence_len,
         checkpoint_path=args.checkpoint_path,
         embed_dim=args.in_channel,
     )
     val_dataloader = get_dataloader(
         tokenized_and_embedded_text=val_data,
-        sequence_length=args.image_size,
+        sequence_length=args.sequence_len,
         batch_size=args.batch_size,
     )
 

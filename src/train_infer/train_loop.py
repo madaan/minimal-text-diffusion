@@ -103,6 +103,7 @@ class TrainLoop:
             ]
 
         if th.cuda.is_available(): # DEBUG **
+            
             self.use_ddp = True
             self.ddp_model = DDP(
                 self.model,
@@ -112,6 +113,10 @@ class TrainLoop:
                 bucket_cap_mb=128,
                 find_unused_parameters=False,
             )
+            # Show all the devices in red color
+            logger.info(f"Using DDP with {dist.get_world_size()} devices")
+            
+
         else:
             if dist.get_world_size() > 1:
                 logger.warn(

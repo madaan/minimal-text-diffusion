@@ -24,7 +24,7 @@ class TransformerNetModel(nn.Module):
     :param channel_mult: channel multiplier for each level of the UNet.
     :param dims: determines if the signal is 1D, 2D, or 3D.
     :param num_classes: if specified (as an int), then this model will be
-        class-conditional with `num_classes` classes.
+        class-conditional with `num_classes` classes. TODO for the next version
     :param use_checkpoint: use gradient checkpointing to reduce memory usage.
     :param num_heads: the number of attention heads in each attention layer.
     """
@@ -59,12 +59,8 @@ class TransformerNetModel(nn.Module):
         self.logits_mode = logits_mode
 
         self.word_embedding = nn.Embedding(vocab_size, self.in_channels)
-        if self.logits_mode == 2:
-            # self.lm_head = nn.Linear(self.in_channels, vocab_size, bias=False)
-            self.lm_head = nn.Linear(self.in_channels, vocab_size, bias=True)
-
-        else:
-            self.lm_head = nn.Linear(self.in_channels, vocab_size)
+        
+        self.lm_head = nn.Linear(self.in_channels, vocab_size)
 
         with th.no_grad():
             self.lm_head.weight = self.word_embedding.weight
@@ -124,10 +120,6 @@ class TransformerNetModel(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        # print(f'real model inputs: {timesteps}')
-        assert (y is not None) == (
-            self.num_classes is not None
-        ), "must specify y if and only if the model is class-conditional"
 
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
 
