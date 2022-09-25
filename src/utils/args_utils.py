@@ -52,14 +52,12 @@ def create_argparser():
 
 def model_and_diffusion_defaults():
     """
-    Defaults for image training.
+    Defaults for text-diffusion model training.
     """
     return dict(
-        image_size=64,
+        sequence_len=64,
         num_channels=16,
         num_heads=4,
-        num_heads_upsample=-1,
-        attention_resolutions="16,8",
         dropout=0.0,
         learn_sigma=False,
         sigma_small=False,
@@ -72,15 +70,13 @@ def model_and_diffusion_defaults():
         rescale_timesteps=True,
         rescale_learned_sigmas=True,
         use_checkpoint=False,
-        use_scale_shift_norm=True,
-        model_arch="trans-unet",
+        model_arch="transformer",
         in_channel=16,
         out_channel=16,
-        training_mode="e2e",
         vocab_size=66,
         config_name="bert-base-uncased",
-        experiment_mode="lm",
         logits_mode=1,
+        training_mode="diffusion-lm"
     )
 
 
