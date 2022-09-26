@@ -14,21 +14,21 @@ import torch, json
 from spacy.lang.en import English
 
 
-def dataloader_from_text(
-    data_txt_path: str,
-    sequence_length: int,
-    checkpoint_path: str,
-    embed_dim: int,
-    batch_size: int,
-    tok_thresh: int = 1,
-):
-    tokenized_and_embedded_text, embeddings, vocab_dict = parse_data_to_embeddings(
-        data_txt_path, sequence_length, checkpoint_path, embed_dim, tok_thresh
-    )
-    dataloader = get_dataloader(
-        tokenized_and_embedded_text, sequence_length, batch_size
-    )
-    return dataloader, embeddings, vocab_dict
+# def dataloader_from_text(
+#     data_txt_path: str,
+#     sequence_length: int,
+#     checkpoint_path: str,
+#     embed_dim: int,
+#     batch_size: int,
+#     tok_thresh: int,
+# ):
+#     tokenized_and_embedded_text, embeddings, vocab_dict = parse_data_to_embeddings(
+#         data_txt_path, sequence_length, checkpoint_path, embed_dim, tok_thresh
+#     )
+#     dataloader = get_dataloader(
+#         tokenized_and_embedded_text, sequence_length, batch_size
+#     )
+#     return dataloader, embeddings, vocab_dict
 
 
 def parse_data_to_embeddings(
@@ -36,12 +36,13 @@ def parse_data_to_embeddings(
     seqlen: int,
     checkpoint_path: str,
     embed_dim: int,
-    tok_thresh: int = 1,
+    tok_thresh: int,
 ):
 
 
     sentence_list = tokenize_txt_file(txt_file_path)
-    embeddings, vocab_dict, tokenizer = create_or_load_embeddings_and_vocab(embed_dim=embed_dim, checkpoint_path=checkpoint_path, sentence_list=sentence_list)
+    embeddings, vocab_dict, tokenizer = create_or_load_embeddings_and_vocab(embed_dim=embed_dim, checkpoint_path=checkpoint_path, sentence_list=sentence_list,
+    tok_frequency_thresh=tok_thresh)
 
 
     result_train_lst = helper_tokenize_encode(
@@ -67,7 +68,7 @@ def tokenize_txt_file(data_txt_path: str) -> List[List[str]]:
 
 
 def create_or_load_embeddings_and_vocab(
-    embed_dim: int, checkpoint_path: str, sentence_list: List[List[str]], tok_frequency_thresh: int = 5
+    embed_dim: int, checkpoint_path: str, sentence_list: List[List[str]], tok_frequency_thresh: int
 ):
     """
     Check if the embeddings and vocab already exist, if not, creates them using the sentence_list.
