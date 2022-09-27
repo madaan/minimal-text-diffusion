@@ -30,15 +30,17 @@ def main():
 
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
-    processed_data, embeddings, vocab_dict = parse_data_to_embeddings(
+    train_data, embeddings, vocab_dict = parse_data_to_embeddings(
         txt_file_path=args.train_txt_path,
         seqlen=args.sequence_len,  # 64
         checkpoint_path=args.checkpoint_path,
         embed_dim=args.in_channel,
+        tok_thresh=args.tok_thresh,
     )
 
+
     train_dataloader = get_dataloader(
-        tokenized_and_embedded_text=processed_data,
+        tokenized_and_embedded_text=train_data,
         sequence_length=args.sequence_len,
         batch_size=args.batch_size,
     )
@@ -50,7 +52,10 @@ def main():
         seqlen=args.sequence_len,
         checkpoint_path=args.checkpoint_path,
         embed_dim=args.in_channel,
+        tok_thresh=args.tok_thresh,
     )
+
+
     val_dataloader = get_dataloader(
         tokenized_and_embedded_text=val_data,
         sequence_length=args.sequence_len,
@@ -78,7 +83,7 @@ def main():
         json.dump(args.__dict__, f, indent=2)
 
 
-    if args.is_test_run:
+    if args.debug:
         wandb.init(mode="disabled")
     else:
         wandb.init(
