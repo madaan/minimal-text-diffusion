@@ -179,12 +179,7 @@ class TrainLoop:
             or self.step + self.resume_step < self.lr_anneal_steps
         ):
             batch, cond = next(self.data)
-            print(batch, batch.shape)
-            print("*"*100)
-            # print banner in RED
-            print("\033[91m" + "TRAINING" + "\033[0m")
-            print("*"*100)
-            print(cond)
+
 
             self.run_step(batch, cond)
             if self.step % self.log_interval == 0:

@@ -3,6 +3,13 @@ This code started out as a PyTorch port of Ho et al's diffusion models:
 https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0706c543/diffusion_tf/diffusion_utils_2.py
 
 Docstrings have been added, as well as DDIM sampling and a new collection of beta schedules.
+
+----
+Aman's notes:
+
+- `q` always refers to the forward diffusion process, and `p` always refers to the reverse diffusion process. `p` is learned, `q` is deterministic.
+
+- DDIM has been removed.
 """
 
 import enum
@@ -264,17 +271,17 @@ class GaussianDiffusion:
 
         model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
 
+        # for the noisy inputs, the models returns the hidden states that are predictions of x_start
 
 
         target = {
             ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
                 x_start=x_start, x_t=x_t, t=t
             )[0],
-            ModelMeanType.START_X: x_start,
+            ModelMeanType.START_X: x_start,  # THIS is actually used
             ModelMeanType.EPSILON: noise,
         }[self.model_mean_type]
         assert model_output.shape == target.shape == x_start.shape
-
         # the usual diffusion loss
         terms["mse"] = mean_flat((target - model_output) ** 2)
         # print( terms["mse"])
@@ -378,13 +385,7 @@ class GaussianDiffusion:
         return mean, variance, log_variance
 
     def token_discrete_loss(self, x_t, get_logits, input_ids):
-        if self.model_arch == 'conv-unet' or  self.model_arch == '1d-unet':
-            reshaped_x_t = x_t.view(x_t.size(0), x_t.size(1), -1).permute(0, 2, 1)
-        else:
-            # print(x_t.shape)
-            reshaped_x_t = x_t
-        logits = get_logits(reshaped_x_t)  # bsz, seqlen, vocab
-        # print(logits.shape)
+        logits = get_logits(x_t)  # bsz, seqlen, vocab
         loss_fct = th.nn.CrossEntropyLoss(reduction='none')
         decoder_nll = loss_fct(logits.view(-1, logits.size(-1)), input_ids.view(-1)).view(input_ids.shape)
         # print(decoder_nll.shape)
@@ -416,53 +417,28 @@ class GaussianDiffusion:
         """
         if model_kwargs is None:
             model_kwargs = {}
-        if self.model_arch == 'conv-unet' or self.model_arch == '1d-unet':
-            B, C = x.shape[:2]
-        else:
-            B, C = x.size(0), x.size(-1)
+        
+        B, C = x.size(0), x.size(-1)
+        # B -> batch size, C -> channel size (embedding size)
         assert t.shape == (B,)
         # print(x.shape)
         model_output = model(x, self._scale_timesteps(t), **model_kwargs)
 
-        if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
-            if self.model_arch == 'conv-unet':
-                assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
-                # print('conv-unet')
-            elif self.model_arch == '1d-unet':
-                assert model_output.shape == (B, C * 2, *x.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
-            else:
-                assert model_output.shape == (B, x.size(1), C * 2)
-                model_output, model_var_values = th.split(model_output, C, dim=-1)
 
-            if self.model_var_type == ModelVarType.LEARNED:
-                model_log_variance = model_var_values
-                model_variance = th.exp(model_log_variance)
-            else:
-                min_log = _extract_into_tensor(
-                    self.posterior_log_variance_clipped, t, x.shape
-                )
-                max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
-                # The model_var_values is [-1, 1] for [min_var, max_var].
-                frac = (model_var_values + 1) / 2
-                model_log_variance = frac * max_log + (1 - frac) * min_log
-                model_variance = th.exp(model_log_variance)
-        else:
-            model_variance, model_log_variance = {
-                # for fixedlarge, we set the initial (log-)variance like so
-                # to get a better decoder log likelihood.
-                ModelVarType.FIXED_LARGE: (
-                    np.append(self.posterior_variance[1], self.betas[1:]),
-                    np.log(np.append(self.posterior_variance[1], self.betas[1:])),
-                ),
-                ModelVarType.FIXED_SMALL: (
-                    self.posterior_variance,
-                    self.posterior_log_variance_clipped,
-                ),
-            }[self.model_var_type]
-            model_variance = _extract_into_tensor(model_variance, t, x.shape)
-            model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+        model_variance, model_log_variance = {
+            # for fixedlarge, we set the initial (log-)variance like so
+            # to get a better decoder log likelihood.
+            ModelVarType.FIXED_LARGE: (
+                np.append(self.posterior_variance[1], self.betas[1:]),
+                np.log(np.append(self.posterior_variance[1], self.betas[1:])),
+            ),
+            ModelVarType.FIXED_SMALL: (
+                self.posterior_variance,
+                self.posterior_log_variance_clipped,
+            ),
+        }[self.model_var_type]
+        model_variance = _extract_into_tensor(model_variance, t, x.shape)
+        model_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
 
         def process_xstart(x):
             if denoised_fn is not None:
@@ -584,6 +560,7 @@ class GaussianDiffusion:
         device=None,
         progress=False,
         top_p=None,
+        tokenizer=None,
     ):
         """
         Generate samples from the model.
@@ -603,6 +580,7 @@ class GaussianDiffusion:
         :return: a non-differentiable batch of samples.
         """
         final = None
+        i = 0
         for sample in self.p_sample_loop_progressive(
             model,
             shape,
@@ -615,6 +593,16 @@ class GaussianDiffusion:
             top_p=top_p,
         ):
             final = sample
+            if i % 100 == 0:
+                x_t = sample['sample']
+                logits = model.get_logits(x_t)  # bsz, seqlen, vocab
+                cands = th.topk(logits, k=1, dim=-1)
+
+                for seq in cands.indices:
+                    print(" ".join([tokenizer.decode(seq.squeeze(1), clean_up_tokenization_spaces=True, skip_special_tokens=True)]))
+                    break
+            i += 1
+
         return final["sample"]
 
     def p_sample_loop_progressive(

@@ -23,6 +23,7 @@ def main():
     dist_util.setup_dist()  # DEBUG **
     logger.configure()
 
+
     logger.log("creating data loader")
 
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)

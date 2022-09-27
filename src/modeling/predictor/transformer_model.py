@@ -136,7 +136,9 @@ class TransformerNetModel(nn.Module):
 
 
         # https://github.com/huggingface/transformers/blob/e95d433d77727a9babadf008dd621a2326d37303/src/transformers/modeling_utils.py#L700
-        attention_mask = attention_mask[:, None, None, :]
+        if attention_mask is not None:
+            attention_mask = attention_mask[:, None, None, :]
+
         input_trans_hidden_states = self.input_transformers(
             emb_inputs,
             attention_mask=attention_mask

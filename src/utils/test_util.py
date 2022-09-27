@@ -44,19 +44,7 @@ def get_weights(model, args):
     return model
 
 def denoised_fn_round(args, model, text_emb, t):
-    # thresh_t = 50
-    # # print(thresh_t)
-    # if thresh_t is not None and t[0] > thresh_t:
-    #     return text_emb
 
-    if args.model_arch == '1d-unet':
-        text_emb = text_emb.permute(0, 2, 1)
-    # return text_emb
-    # print(t.float().mean(), t[0])
-
-    # assert t.float().mean() == t[0].float()
-    
-    # print(text_emb.shape) # bsz, seqlen, dim
     down_proj_emb = model.weight  # input_embs
     # print(t)
     old_shape = text_emb.shape

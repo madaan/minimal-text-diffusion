@@ -4,7 +4,6 @@ Utilities for command line arguments.
 
 import argparse
 
-from modeling.diffusion.nn import checkpoint
 
 
 def create_argparser():
@@ -39,12 +38,13 @@ def create_argparser():
         use_bert_tokenizer="no",
         padding_mode="block",
         preprocessing_num_workers=1,
+        tok_thresh=150
     )
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
     defaults.update(decoding_defaults())
     parser = argparse.ArgumentParser()
-    parser.add_argument("--is_test_run", action="store_true")
+    parser.add_argument("--debug", action="store_true")
 
     add_dict_to_argparser(parser, defaults)
     return parser
