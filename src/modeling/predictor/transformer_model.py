@@ -111,7 +111,7 @@ class TransformerNetModel(nn.Module):
     def get_logits(self, hidden_repr):
         return self.lm_head(hidden_repr)
 
-    def forward(self, x, timesteps, y=None, src_ids=None, src_mask=None):
+    def forward(self, x, timesteps, y=None, src_ids=None, src_mask=None, attention_mask=None):
         """
         Apply the model to an input batch.
 
@@ -134,8 +134,12 @@ class TransformerNetModel(nn.Module):
         )
         emb_inputs = self.dropout(self.LayerNorm(emb_inputs))
 
+
+        # https://github.com/huggingface/transformers/blob/e95d433d77727a9babadf008dd621a2326d37303/src/transformers/modeling_utils.py#L700
+        attention_mask = attention_mask[:, None, None, :]
         input_trans_hidden_states = self.input_transformers(
-            emb_inputs
+            emb_inputs,
+            attention_mask=attention_mask
         ).last_hidden_state
         h = self.output_down_proj(input_trans_hidden_states)
         h = h.type(x.dtype)

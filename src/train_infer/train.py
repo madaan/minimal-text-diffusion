@@ -8,15 +8,13 @@ from src.utils import dist_util, logger
 from src.modeling.diffusion.resample import create_named_schedule_sampler
 from script_util import create_model_and_diffusion
 from train_loop import TrainLoop
-from src.utils.data_utils import parse_data_to_embeddings, get_dataloader
+from src.utils import data_utils_sentencepiece
 import wandb
-
 
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 
 from transformers import set_seed
 import os
-
 
 
 def main():
@@ -27,37 +25,26 @@ def main():
 
     logger.log("creating data loader")
 
-
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
-    processed_data, embeddings, vocab_dict = parse_data_to_embeddings(
-        txt_file_path=args.train_txt_path,
-        seqlen=args.sequence_len,  # 64
-        checkpoint_path=args.checkpoint_path,
-        embed_dim=args.in_channel,
+    embeddings = data_utils_sentencepiece.create_or_load_embeddings(
+        embed_dim=args.in_channel, checkpoint_path=args.checkpoint_path
     )
 
-    train_dataloader = get_dataloader(
-        tokenized_and_embedded_text=processed_data,
-        sequence_length=args.sequence_len,
+    train_dataloader = data_utils_sentencepiece.get_dataloader(
+        embeddings=embeddings,
+        data_path=args.train_txt_path,
         batch_size=args.batch_size,
     )
 
-    rev_tokenizer = {v: k for k, v in vocab_dict.items()}
-
-    val_data, _, _ = parse_data_to_embeddings(
-        txt_file_path=args.val_txt_path,
-        seqlen=args.sequence_len,
-        checkpoint_path=args.checkpoint_path,
-        embed_dim=args.in_channel,
-    )
-    val_dataloader = get_dataloader(
-        tokenized_and_embedded_text=val_data,
-        sequence_length=args.sequence_len,
+    val_dataloader = data_utils_sentencepiece.get_dataloader(
+        embeddings=embeddings,
+        data_path=args.val_txt_path,
         batch_size=args.batch_size,
     )
 
-    args.vocab_size = len(vocab_dict)
+
+    args.vocab_size = len(data_utils_sentencepiece.tokenizer)
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
@@ -71,14 +58,11 @@ def main():
     logger.log(f"the parameter count is {pytorch_total_params}")
     schedule_sampler = create_named_schedule_sampler(args.schedule_sampler, diffusion)
 
-    logger.log(
-        f"saving the hyperparameters to {args.checkpoint_path}/training_args.json"
-    )
+    logger.log(f"saving the hyperparameters to {args.checkpoint_path}/training_args.json")
     with open(f"{args.checkpoint_path}/training_args.json", "w") as f:
         json.dump(args.__dict__, f, indent=2)
 
-
-    if args.is_test_run:
+    if args.debug:
         wandb.init(mode="disabled")
     else:
         wandb.init(
@@ -87,7 +71,6 @@ def main():
         )
         wandb.config.update(args.__dict__, allow_val_change=True)
 
-    
     logger.log("training...")
     TrainLoop(
         model=model,
@@ -110,7 +93,6 @@ def main():
         eval_data=val_dataloader,
         eval_interval=args.eval_interval,
     ).run_loop()
-
 
 
 if __name__ == "__main__":
