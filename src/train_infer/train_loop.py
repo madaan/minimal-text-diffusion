@@ -211,21 +211,24 @@ class TrainLoop:
         self.log_step()
 
     def forward_only(self, batch, cond):
+        batch_size = cond[list(cond.keys())[0]].shape[0]
+
         with th.no_grad():
             zero_grad(self.model_params)
-            for i in range(0, batch.shape[0], self.microbatch):
-                micro = batch[i: i + self.microbatch].to(dist_util.dev())
+            for i in range(0, batch_size, self.microbatch):
                 micro_cond = {
                     k: v[i: i + self.microbatch].to(dist_util.dev())
                     for k, v in cond.items()
                 }
-                last_batch = (i + self.microbatch) >= batch.shape[0]
-                t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
+                last_batch = (i + self.microbatch) >= batch_size
+                curr_batch_size = micro_cond[list(micro_cond.keys())[0]].shape[0]
+
+                t, weights = self.schedule_sampler.sample(curr_batch_size, dist_util.dev())
                 # print(micro_cond.keys())
                 compute_losses = functools.partial(
                     self.diffusion.training_losses,
                     self.ddp_model,
-                    micro,
+                    None,
                     t,
                     model_kwargs=micro_cond,
                 )
@@ -243,19 +246,21 @@ class TrainLoop:
 
     def forward_backward(self, batch, cond):
         zero_grad(self.model_params)
-        for i in range(0, batch.shape[0], self.microbatch):
-            micro = batch[i : i + self.microbatch].to(dist_util.dev())
+        batch_size = cond[list(cond.keys())[0]].shape[0]
+        
+        for i in range(0, batch_size, self.microbatch):
             micro_cond = {
                 k: v[i : i + self.microbatch].to(dist_util.dev())
                 for k, v in cond.items()
             }
-            last_batch = (i + self.microbatch) >= batch.shape[0]
-            t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
+            last_batch = (i + self.microbatch) >= batch_size
+            curr_batch_size = micro_cond[list(micro_cond.keys())[0]].shape[0]
+            t, weights = self.schedule_sampler.sample(curr_batch_size, dist_util.dev())
             # print(micro_cond.keys())
             compute_losses = functools.partial(
                 self.diffusion.training_losses,
                 self.ddp_model,  # this is the transformer model in DDP mode
-                micro,
+                None,
                 t,
                 model_kwargs=micro_cond,
             )

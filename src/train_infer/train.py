@@ -28,18 +28,13 @@ def main():
 
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
-    embeddings = data_utils_sentencepiece.create_or_load_embeddings(
-        embed_dim=args.in_channel, checkpoint_path=args.checkpoint_path
-    )
 
     train_dataloader = data_utils_sentencepiece.get_dataloader(
-        embeddings=embeddings,
         data_path=args.train_txt_path,
         batch_size=args.batch_size,
     )
 
     val_dataloader = data_utils_sentencepiece.get_dataloader(
-        embeddings=embeddings,
         data_path=args.val_txt_path,
         batch_size=args.batch_size,
     )

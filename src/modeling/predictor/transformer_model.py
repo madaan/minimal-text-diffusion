@@ -58,12 +58,6 @@ class TransformerNetModel(nn.Module):
         self.num_heads = num_heads
         self.logits_mode = logits_mode
 
-        self.word_embedding = nn.Embedding(vocab_size, self.in_channels)
-        
-        self.lm_head = nn.Linear(self.in_channels, vocab_size)
-
-        with th.no_grad():
-            self.lm_head.weight = self.word_embedding.weight
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
@@ -77,23 +71,36 @@ class TransformerNetModel(nn.Module):
             nn.Tanh(),
             nn.Linear(config.hidden_size, config.hidden_size),
         )
-        if True:
+        if init_pretrained:
             from transformers.models.bert.modeling_bert import BertModel
 
             temp_bert = BertModel.from_pretrained(config_name, config=config)
-            del temp_bert.embeddings
+            # del temp_bert.embeddings
             del temp_bert.pooler
             self.input_transformers = temp_bert.encoder
+            self.word_embedding = temp_bert.embeddings.word_embeddings
+            self.position_embeddings = temp_bert.embeddings.position_embeddings
             print("initializing from pretrained bert.")
         else:
-            print(config)
+            print("initializing from scratch.")
             self.input_transformers = BertEncoder(config)
+            self.word_embedding = nn.Embedding(vocab_size, self.in_channels)
+            self.position_embeddings = nn.Embedding(
+            config.max_position_embeddings, config.hidden_size
+        )
+
+
+
+
+        
+        self.lm_head = nn.Linear(self.in_channels, vocab_size)
+
+        with th.no_grad():
+            self.lm_head.weight = self.word_embedding.weight
+
 
         self.register_buffer(
             "position_ids", torch.arange(config.max_position_embeddings).expand((1, -1))
-        )
-        self.position_embeddings = nn.Embedding(
-            config.max_position_embeddings, config.hidden_size
         )
 
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)

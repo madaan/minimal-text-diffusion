@@ -76,7 +76,8 @@ def model_and_diffusion_defaults():
         vocab_size=66,
         config_name="bert-base-uncased",
         logits_mode=1,
-        training_mode="diffusion-lm"
+        training_mode="diffusion-lm",
+        init_pretrained=True
     )
 
 

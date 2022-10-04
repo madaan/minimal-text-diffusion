@@ -25,6 +25,7 @@ def create_model_and_diffusion(
     vocab_size,
     config_name,
     logits_mode,
+    init_pretrained,
     **kwargs,
 ):
     model = create_model(
@@ -40,6 +41,7 @@ def create_model_and_diffusion(
         vocab_size=vocab_size,
         config_name=config_name,
         logits_mode=logits_mode,
+        init_pretrained=init_pretrained,
     )
     diffusion = create_gaussian_diffusion(
         steps=diffusion_steps,
@@ -70,6 +72,7 @@ def create_model(
     vocab_size=None,
     config_name="",
     logits_mode=1,
+    init_pretrained=False,
 ):
 
     return TransformerNetModel(
@@ -84,6 +87,7 @@ def create_model(
         config_name=config_name,
         vocab_size=vocab_size,
         logits_mode=logits_mode,
+        init_pretrained=init_pretrained
     )
 
 

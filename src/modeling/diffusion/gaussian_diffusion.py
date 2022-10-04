@@ -236,12 +236,12 @@ class GaussianDiffusion:
         self.training_mode = training_mode
         print('training mode is ', training_mode)
 
-    def training_losses(self, model, x_start, t, model_kwargs=None, noise=None):
+    def training_losses(self, model, x_start_never_used, t, model_kwargs=None, noise=None):
         """
         Compute training losses for a single timestep.
 
         :param model: the model to evaluate loss on.
-        :param x_start: the [N x C x ...] tensor of inputs.
+        :param x_start: the [N x C x ...] tensor of inputs. It is NEVER used -- the embeddings are recreated every time from the input IDs.
         :param t: a batch of timestep indices.
         :param model_kwargs: if not None, a dict of extra keyword arguments to
             pass to the model. This can be used for conditioning.
