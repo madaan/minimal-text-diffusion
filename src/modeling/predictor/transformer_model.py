@@ -77,7 +77,7 @@ class TransformerNetModel(nn.Module):
             nn.Tanh(),
             nn.Linear(config.hidden_size, config.hidden_size),
         )
-        if init_pretrained:
+        if True:
             from transformers.models.bert.modeling_bert import BertModel
 
             temp_bert = BertModel.from_pretrained(config_name, config=config)

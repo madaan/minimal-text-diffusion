@@ -3,6 +3,7 @@ Generate a large batch of image samples from a model and save them as a large
 numpy array. This can be used to produce samples for FID evaluation.
 """
 import os, json
+import pathlib
 from typing import List
 
 import numpy as np
@@ -22,10 +23,12 @@ from src.train_infer.script_util import (
     create_model_and_diffusion,
 )
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
+from src.utils.custom_tokenizer import create_tokenizer
 
 
 # BAD: this should not be global
 tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+tokenizer = create_tokenizer()
 
 
 def main():
@@ -106,7 +109,7 @@ def main():
     decoded_sentences = []
 
     for seq in cands.indices:
-        decoded_sentence = tokenizer.decode(seq.squeeze(1), clean_up_tokenization_spaces=True, skip_special_tokens=True)
+        decoded_sentence = tokenizer.decode(seq.squeeze(1).tolist(), skip_special_tokens=True)
         decoded_sentences.append(decoded_sentence)
 
     dist.barrier()
@@ -116,7 +119,7 @@ def main():
 
 
 def load_embeddings(checkpoint_path, tokenizer, emb_dim):
-    embeddings = th.nn.Embedding(len(tokenizer), emb_dim)
+    embeddings = th.nn.Embedding(tokenizer.vocab_size, emb_dim)
     embeddings.load_state_dict(th.load(f'{checkpoint_path}/random_emb.torch'))
     return embeddings
 
@@ -131,14 +134,13 @@ def read_training_args(config_path):
 
 def write_outputs(args: dict, sentences: List[str]) -> None:
 
-    model_base_name = (
-        os.path.basename(os.path.split(args.model_name_or_path)[0])
-        + f".{os.path.split(args.model_name_or_path)[1]}"
-    )
+    model_dir = os.path.split(args.model_name_or_path)[0]
+    model_base_name = os.path.split(args.model_name_or_path)[1]
+    
     output_file_basepath = os.path.join(
-        args.out_dir, f"{model_base_name}.samples_{args.top_p}.steps={args.diffusion_steps}.clamp={args.clamp}"
+        model_dir, f"{model_base_name}.samples_{args.top_p}.steps={args.diffusion_steps}.clamp={args.clamp}"
     )
-
+    
     with open(output_file_basepath + ".txt", "w") as text_fout, open(
         output_file_basepath + ".json", "w"
     ) as json_fout:
@@ -148,21 +150,21 @@ def write_outputs(args: dict, sentences: List[str]) -> None:
 
         print(f"written the decoded output to {output_file_basepath}")
 
-    print(sentences[:2])
+    # print(sentences[:2])
 
-    with open("generation_outputs_emb128/two_steps_sanity_check.txt", "r") as fin:
-        sanity_check_lines = fin.readlines()
+    # with open("generation_outputs_emb128/two_steps_sanity_check.txt", "r") as fin:
+    #     sanity_check_lines = fin.readlines()
 
-    # compare with sentences
-    for i, sanity_check_line in enumerate(sanity_check_lines):
-        sanity_check_line_toks = set(sanity_check_line.strip().split())
-        generated_sentence_toks = set(sentences[i].split())
+    # # compare with sentences
+    # for i, sanity_check_line in enumerate(sanity_check_lines):
+    #     sanity_check_line_toks = set(sanity_check_line.strip().split())
+    #     generated_sentence_toks = set(sentences[i].split())
 
-        common = sanity_check_line_toks.intersection(generated_sentence_toks)
-        jaccard = len(common) / len(sanity_check_line_toks.union(generated_sentence_toks))
-        # assert (
-        #     jaccard > 0.9
-        # ), f"line {i} is not similar enough: {jaccard} {sanity_check_line_toks} {generated_sentence_toks} | {common}"
+    #     common = sanity_check_line_toks.intersection(generated_sentence_toks)
+    #     jaccard = len(common) / len(sanity_check_line_toks.union(generated_sentence_toks))
+    #     # assert (
+    #     #     jaccard > 0.9
+    #     # ), f"line {i} is not similar enough: {jaccard} {sanity_check_line_toks} {generated_sentence_toks} | {common}"
 
 
 if __name__ == "__main__":

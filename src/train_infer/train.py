@@ -45,7 +45,7 @@ def main():
     )
 
 
-    args.vocab_size = len(data_utils_sentencepiece.tokenizer)
+    args.vocab_size = data_utils_sentencepiece.tokenizer.vocab_size
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
@@ -68,7 +68,7 @@ def main():
     else:
         wandb.init(
             project=os.getenv("WANDB_PROJECT", "minimial-text-diffusion"),
-            name=args.checkpoint_path,
+            name=args.checkpoint_path + make_wandb_name_from_args(args),
         )
         wandb.config.update(args.__dict__, allow_val_change=True)
 
@@ -95,6 +95,13 @@ def main():
         eval_interval=args.eval_interval,
     ).run_loop()
 
+
+def make_wandb_name_from_args(args):
+    keys_to_add = ["batch_size", "lr", "num_heads", "lr_anneal_steps", "config_name", "seed", "in_channel"]
+    name = ""
+    for key in keys_to_add:
+        name += f"{key}={getattr(args, key)}_"
+    return name
 
 if __name__ == "__main__":
     main()

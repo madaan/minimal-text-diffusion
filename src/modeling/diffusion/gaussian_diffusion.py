@@ -593,13 +593,14 @@ class GaussianDiffusion:
             top_p=top_p,
         ):
             final = sample
-            if i % 100 == 0:
+            if i % 10 == 0:
                 x_t = sample['sample']
                 logits = model.get_logits(x_t)  # bsz, seqlen, vocab
                 cands = th.topk(logits, k=1, dim=-1)
 
                 for seq in cands.indices:
-                    print(" ".join([tokenizer.decode(seq.squeeze(1), clean_up_tokenization_spaces=True, skip_special_tokens=True)]))
+                    print(seq.squeeze(1).tolist())
+                    print(" ".join([tokenizer.decode(seq.squeeze(1).tolist(), skip_special_tokens=True)]))
                     break
             i += 1
 

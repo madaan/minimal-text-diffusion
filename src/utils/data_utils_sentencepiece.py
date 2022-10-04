@@ -5,12 +5,15 @@ import torch
 import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
-from transformers import AutoTokenizer
 import torch
 
+from src.utils.custom_tokenizer import create_tokenizer
+
+logging.basicConfig(level=logging.INFO)
 
 # BAD: this should not be global
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+# tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+tokenizer = create_tokenizer()
 
 
 def create_or_load_embeddings(embed_dim: int, checkpoint_path: str):
@@ -23,7 +26,7 @@ def create_or_load_embeddings(embed_dim: int, checkpoint_path: str):
         embeddings = load_embeddings(embed_dim, checkpoint_path)
     else:
         pathlib.Path(checkpoint_path).mkdir(parents=True, exist_ok=True)
-        embeddings = torch.nn.Embedding(len(tokenizer), embed_dim)
+        embeddings = torch.nn.Embedding(tokenizer.vocab_size, embed_dim)
         print("initializing the random embeddings", embeddings)
         torch.nn.init.normal_(embeddings.weight)
         path_save = f"{checkpoint_path}/random_emb.torch"
@@ -39,7 +42,7 @@ def create_or_load_embeddings(embed_dim: int, checkpoint_path: str):
 
 def load_embeddings(emb_dim, checkpoint_path):
 
-    model = torch.nn.Embedding(len(tokenizer), emb_dim)
+    model = torch.nn.Embedding(tokenizer.vocab_size, emb_dim)
     path_save = f"{checkpoint_path}/random_emb.torch"
     model.load_state_dict(torch.load(path_save))
     return model
@@ -78,27 +81,41 @@ class TextDataset(Dataset):
     def read_data(self):
         logging.info("Reading data from {}".format(self.data_path))
         data = pd.read_csv(self.data_path, sep="\t", header=None)  # read text file
+        logging.info(f"Tokenizing {len(data)} sentences")
+
         self.text = data[0].apply(lambda x: x.strip()).tolist()
-        logging.info(f"Reading data file from {self.data_path}")
         # encoded_input = self.tokenizer(self.questions, self.paragraphs)
-        encoded_input = self.tokenizer(self.text)
-        self.input_ids = encoded_input[
-            "input_ids"
-        ]  # list of list of int. Each with a different length depending on the sentence
-        self.hidden_states = []
-        with torch.no_grad():
-            for i in range(0, len(self.input_ids), 128):
-                self.hidden_states.extend(
-                    self.embeddings(torch.tensor(self.input_ids[i : i + 128])).cpu().tolist()
-                )
-        assert len(self.input_ids) == len(self.hidden_states)
+        
+        # check if tokenizer has a method 'encode_batch'
+        if hasattr(self.tokenizer, 'encode_batch'):
+
+            encoded_input = self.tokenizer.encode_batch(self.text)
+            self.input_ids = [x.ids for x in encoded_input]
+        
+        else:
+            encoded_input = self.tokenizer(self.text)
+            self.input_ids = encoded_input["input_ids"]
+
+        # list of list of int. Each with a different length depending on the sentence
+
+        # print(len(self.input_ids))
+        # print(self.input_ids[0])
+        # self.hidden_states = []
+        # with torch.no_grad():
+        #     for i in tqdm(range(len(self.input_ids))):
+        #         arr = np.array(self.embeddings(torch.tensor(self.input_ids[i])).cpu().tolist())
+        #         self.hidden_states.append(arr)
+
+        # assert len(self.input_ids) == len(self.hidden_states)
 
     def __len__(self) -> int:
         return len(self.text)
 
     def __getitem__(self, i):
         # We’ll pad at the batch level.
-        arr = np.array(self.hidden_states[i], dtype=np.float32)
+        with torch.no_grad():
+            arr = np.array(self.embeddings(torch.tensor(self.input_ids[i])).cpu().tolist())
+        # arr = np.array(self.hidden_states[i], dtype=np.float32)
         out_dict = {
             "input_ids": self.input_ids[i],
             # "attention_mask": [1] * len(self.input_ids[i]),
@@ -106,7 +123,7 @@ class TextDataset(Dataset):
         return arr, out_dict
 
     @staticmethod
-    def collate_pad(batch, cutoff: int = 200):
+    def collate_pad(batch, cutoff: int = 256):
         max_token_len = 0
         num_elems = len(batch)
         embed_dim = batch[0][0].shape[-1]
@@ -126,6 +143,6 @@ class TextDataset(Dataset):
             length = len(toks)
             tokens[i, :length] = torch.LongTensor(toks)
             tokens_mask[i, :length] = 1
-            embeddings[i] = torch.Tensor(batch[i][0])
+            embeddings[i, :length] = torch.Tensor(batch[i][0])
 
         return embeddings, {"input_ids": tokens, "attention_mask": tokens_mask}

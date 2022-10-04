@@ -8,6 +8,7 @@ import torch as th
 import torch.distributed as dist
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
+from tqdm import tqdm
 
 from src.utils import dist_util, logger
 from src.utils.fp16_util import (
@@ -174,6 +175,7 @@ class TrainLoop:
         self.model.convert_to_fp16()
 
     def run_loop(self):
+        pbar = tqdm(total=self.lr_anneal_steps, desc="Training")
         while (
             not self.lr_anneal_steps
             or self.step + self.resume_step < self.lr_anneal_steps
@@ -195,6 +197,7 @@ class TrainLoop:
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                     return
             self.step += 1
+            pbar.update(1)
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
             self.save()

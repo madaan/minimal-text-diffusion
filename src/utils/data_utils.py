@@ -127,7 +127,7 @@ def load_embeddings_and_vocab(emb_dim, checkpoint_path):
     with open(path_save_tokenizer, "r") as f:
         vocab = json.load(f)
     tokenizer = {v: k for k, v in vocab.items()}
-    model = torch.nn.Embedding(len(tokenizer), emb_dim)
+    model = torch.nn.Embedding(tokenizer.vocab_size, emb_dim)
     path_save = f"{checkpoint_path}/random_emb.torch"
     model.load_state_dict(torch.load(path_save))
 
