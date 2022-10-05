@@ -4,18 +4,16 @@ import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 import torch
 
-from src.utils.custom_tokenizer import create_tokenizer
 
 logging.basicConfig(level=logging.INFO)
 
 # BAD: this should not be global
 # tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-tokenizer = create_tokenizer()
 
 
 
 
-def get_dataloader(data_path, batch_size):
+def get_dataloader(tokenizer, data_path, batch_size):
     dataset = TextDataset(tokenizer=tokenizer, data_path=data_path)
 
     dataloader = DataLoader(
