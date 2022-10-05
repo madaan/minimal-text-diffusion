@@ -185,3 +185,42 @@ The process is repeated until `x_0` is generated.
 
 
 
+--- 
+
+## Acknowledgements
+
+- Thanks to the team behind [Diffusion-LM Improves Controllable Text Generation](http://arxiv.org/abs/2205.14217) for releasing their code, which I used as a starting point.
+- Thanks to the authors of a number of open source implementations of DDPM/DDIM, helpful blogs and videos. Some of the ones I bookmarked are:
+
+| Title                                                                                             | Url                                                                                                                      |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| Composable Text Control Operations in Latent Space with Ordinary Differential Equations           | http://arxiv.org/abs/2208.00638                                                                                          |
+| Diffusion-LM Improves Controllable Text Generation                                                | http://arxiv.org/abs/2205.14217                                                                                          |
+| Step-unrolled Denoising Autoencoders for Text Generation                                          | http://arxiv.org/abs/2112.06749                                                                                          |
+| Latent Diffusion Energy-Based Model for Interpretable Text Modeling                               | http://arxiv.org/abs/2206.05895                                                                                          |
+| Parti - Scaling Autoregressive Models for Content-Rich Text-to-Image Generation (Paper Explained) | https://www.youtube.com/watch?v=qS-iYnp00uc                                                                              |
+| Deep Unsupervised Learning using Nonequilibrium Thermodynamics                                    | http://arxiv.org/abs/1503.03585                                                                                          |
+| lucidrains/denoising-diffusion-pytorch                                                            | https://github.com/lucidrains/denoising-diffusion-pytorch                                                                |
+| Cold Diffusion: Inverting Arbitrary Image Transforms Without Noise                                | http://arxiv.org/abs/2208.09392                                                                                          |
+| Analog Bits: Generating Discrete Data using Diffusion Models with Self-Conditioning               | http://arxiv.org/abs/2208.04202                                                                                          |
+| Diffusion Maps for Textual Network Embedding                                                      | https://proceedings.neurips.cc/paper/2018/hash/211a7a84d3d5ce4d80347da11e0c85ed-Abstract.html                            |
+| Diffusion-LM Improves Controllable Text Generation                                                | https://github.com/XiangLi1999/Diffusion-LM                                                                              |
+| Denoising Diffusion Probabilistic Models                                                          | http://arxiv.org/abs/2006.11239                                                                                          |
+| Variational Diffusion Models                                                                      | http://arxiv.org/abs/2107.00630                                                                                          |
+| Elucidating the Design Space of Diffusion-Based Generative Models                                 | http://arxiv.org/abs/2206.00364                                                                                          |
+| Diffusion Models Beat GANs on Image Synthesis                                                     | http://arxiv.org/abs/2105.05233                                                                                          |
+| guided-diffusion                                                                                  | https://github.com/openai/guided-diffusion                                                                               |
+| Minimal implementation of diffusion models ⚛                                                      | https://github.com/VSehwag/minimal-diffusion                                                                             |
+| minDiffusion                                                                                      | https://github.com/cloneofsimo/minDiffusion                                                                              |
+| What are Diffusion Models?                                                                        | https://lilianweng.github.io/posts/2021-07-11-diffusion-models/                                                          |
+| Denosing Diffusion Generative Models                                                              | https://github.com/hmdolatabadi/denoising_diffusion/blob/392d59a95a85b0ac19918c9b3174d1a71be1c5d1/diffusion_lightning.py |
+| High-Resolution Image Synthesis with Latent Diffusion Models                                      | http://arxiv.org/abs/2112.10752                                                                                          |
+| Generative Modeling by Estimating Gradients of the Data Distribution \| Yang Song                 | https://yang-song.net/blog/2021/score/                                                                                   |
+| GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models      | http://arxiv.org/abs/2112.10741                                                                                          |
+| Blended Diffusion for Text-driven Editing of Natural Images                                       | http://arxiv.org/abs/2111.14818                                                                                          |
+| Generative Modeling by Estimating Gradients of the Data Distribution                              | http://arxiv.org/abs/1907.05600                                                                                          |
+| Diffusion Schr\"odinger Bridge with Applications to Score-Based Generative Modeling               | http://arxiv.org/abs/2106.01357                                                                                          |
+| Score-based Generative Modeling in Latent Space                                                   | http://arxiv.org/abs/2106.05931                                                                                          |
+| SCORE-BASED GENERATIVE MODELING THROUGH STOCHASTIC DIFFERENTIAL EQUATIONS                         |                                                                                                                          |
+| A Connection Between Score Matching and Denoising Autoencoders                                    | https://direct.mit.edu/neco/article/23/7/1661-1674/7677                                                                  |
+| Maximum Likelihood Training of Score-Based Diffusion Models                                       | http://arxiv.org/abs/2101.09258                                                                                          |
