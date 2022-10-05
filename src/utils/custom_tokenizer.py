@@ -1,4 +1,5 @@
 import json
+import pathlib
 import torch
 from transformers import AutoTokenizer
 
@@ -6,31 +7,26 @@ from tokenizers.processors import BertProcessing
 from tokenizers import ByteLevelBPETokenizer, decoders
 
 
-def train():
-    paths = ["data/author-quote.txt"]
+def train(file, vocab_size=1000, min_frequency=1, special_tokens=["<s>", "<pad>", "</s>", "<unk>", "<mask>"]):
 
     tokenizer = ByteLevelBPETokenizer()
 
     # Customize training
-    tokenizer.train(files=paths, vocab_size=5000, min_frequency=2, special_tokens=[
-        "<s>",
-        "<pad>",
-        "</s>",
-        "<unk>",
-        "<mask>",
-    ])
-
-    tokenizer.save_model("data/author-quote/")
+    tokenizer.train(files=[file], vocab_size=vocab_size, min_frequency=min_frequency, special_tokens=special_tokens)
 
 
-def create_tokenizer(return_pretokenized=True):
+
+    tokenizer.save_model(str(pathlib.Path(file).parent))
+
+
+def create_tokenizer(return_pretokenized, path="data/simple/"):
     if return_pretokenized:
         tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         return tokenizer
 
     tokenizer = ByteLevelBPETokenizer(
-        "data/author-quote/vocab.json",
-        "data/author-quote/merges.txt",
+        f"{path}/vocab.json",
+        f"{path}/merges.txt",
     )
 
     tokenizer._tokenizer.post_processor = BertProcessing(
@@ -42,7 +38,7 @@ def create_tokenizer(return_pretokenized=True):
 
     print(tokenizer.encode("Bores can be divided into two classes; those who have their own particular subject, and those who do not need a subject.").tokens)
 
-    with open("data/author-quote/vocab.json", "r") as fin:
+    with open(f"{path}/vocab.json", "r") as fin:
         vocab = json.load(fin)
     
     # add length method to tokenizer object
@@ -66,4 +62,8 @@ def create_tokenizer(return_pretokenized=True):
 
 
 if __name__ == "__main__":
-    create_tokenizer()
+    import sys
+    if sys.argv[1] == "train":
+        train(file=sys.argv[2])
+    elif sys.argv[1] == "create":
+        create_tokenizer(path=sys.argv[2])

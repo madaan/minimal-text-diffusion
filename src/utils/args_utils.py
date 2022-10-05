@@ -27,6 +27,7 @@ def create_argparser():
         checkpoint_path="diff_models",
         train_txt_path="data/quotes_train.txt",
         val_txt_path="data/quotes_valid.txt",
+        notes="",
     )
     text_defaults = dict(
         modality="text",
@@ -77,7 +78,9 @@ def model_and_diffusion_defaults():
         config_name="bert-base-uncased",
         logits_mode=1,
         training_mode="diffusion-lm",
-        init_pretrained=True
+        init_pretrained=False,
+        freeze_embeddings=False,
+        use_pretrained_embeddings=True,
     )
 
 

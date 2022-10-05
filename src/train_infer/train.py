@@ -6,7 +6,7 @@ import json, os
 import pathlib
 from src.utils import dist_util, logger
 from src.modeling.diffusion.resample import create_named_schedule_sampler
-from script_util import create_model_and_diffusion
+from train_infer.factory_methods import create_model_and_diffusion
 from train_loop import TrainLoop
 from src.utils import data_utils_sentencepiece
 import wandb
@@ -15,6 +15,8 @@ from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffu
 
 from transformers import set_seed
 import os
+
+from utils.custom_tokenizer import create_tokenizer
 
 
 def main():
@@ -28,19 +30,22 @@ def main():
 
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
+    tokenizer = create_tokenizer(return_pretokenized=args.init_pretrained)
 
     train_dataloader = data_utils_sentencepiece.get_dataloader(
+        tokenizer=tokenizer,
         data_path=args.train_txt_path,
         batch_size=args.batch_size,
     )
 
     val_dataloader = data_utils_sentencepiece.get_dataloader(
+        tokenizer=tokenizer,
         data_path=args.val_txt_path,
         batch_size=args.batch_size,
     )
 
 
-    args.vocab_size = data_utils_sentencepiece.tokenizer.vocab_size
+    args.vocab_size = tokenizer.vocab_size
 
     logger.log("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(
@@ -48,6 +53,8 @@ def main():
     )
     model.to(dist_util.dev())  #  DEBUG **
     # model.cuda() #  DEBUG **
+    
+    print(model)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
 
@@ -64,6 +71,7 @@ def main():
         wandb.init(
             project=os.getenv("WANDB_PROJECT", "minimial-text-diffusion"),
             name=args.checkpoint_path + make_wandb_name_from_args(args),
+            notes=args.notes,
         )
         wandb.config.update(args.__dict__, allow_val_change=True)
 

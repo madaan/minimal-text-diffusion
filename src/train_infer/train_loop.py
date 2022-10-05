@@ -212,7 +212,6 @@ class TrainLoop:
 
     def forward_only(self, batch, cond):
         batch_size = cond[list(cond.keys())[0]].shape[0]
-
         with th.no_grad():
             zero_grad(self.model_params)
             for i in range(0, batch_size, self.microbatch):
@@ -334,7 +333,8 @@ class TrainLoop:
 
             
         for p in self.master_params:
-            sqsum += (p.grad ** 2).sum().item()
+            if p.grad is not None:
+                sqsum += (p.grad ** 2).sum().item()
         logger.logkv_mean("grad_norm", np.sqrt(sqsum))
 
     def _anneal_lr(self):
