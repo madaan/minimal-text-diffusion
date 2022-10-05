@@ -224,3 +224,8 @@ The process is repeated until `x_0` is generated.
 | Score-based Generative Modeling in Latent Space | http://arxiv.org/abs/2106.05931 |
 | A Connection Between Score Matching and Denoising Autoencoders | https://direct.mit.edu/neco/article/23/7/1661-1674/7677 |
 | Maximum Likelihood Training of Score-Based Diffusion Models | http://arxiv.org/abs/2101.09258 |
+
+
+## License
+
+- MIT License
