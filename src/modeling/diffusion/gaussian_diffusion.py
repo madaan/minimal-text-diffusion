@@ -21,6 +21,7 @@ import torch as th
 from src.modeling.diffusion.nn import mean_flat
 from src.modeling.diffusion.losses import normal_kl
 
+from src.utils.show_sampling_progress import pprint_sentences
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
     """
@@ -281,7 +282,7 @@ class GaussianDiffusion:
             ModelMeanType.START_X: x_start,  # THIS is actually used
             ModelMeanType.EPSILON: noise,
         }[self.model_mean_type]
-        assert model_output.shape == target.shape == x_start.shape
+        assert model_output.shape == target.shape == x_start.shape, f"model_output.shape: {model_output.shape}, target.shape: {target.shape}, x_start.shape: {x_start.shape}"
         # the usual diffusion loss
         terms["mse"] = mean_flat((target - model_output) ** 2)
         # print( terms["mse"])
@@ -561,6 +562,9 @@ class GaussianDiffusion:
         progress=False,
         top_p=None,
         tokenizer=None,
+        log_verbose=False,
+        logging_freq: int = 100,
+        num_samples_to_show: int = 2,
     ):
         """
         Generate samples from the model.
@@ -580,8 +584,11 @@ class GaussianDiffusion:
         :return: a non-differentiable batch of samples.
         """
         final = None
-        i = 0
-        for sample in self.p_sample_loop_progressive(
+        prevs = [[] for _ in range(num_samples_to_show)]
+        
+
+        
+        for i, sample in enumerate(self.p_sample_loop_progressive(
             model,
             shape,
             noise=noise,
@@ -591,18 +598,21 @@ class GaussianDiffusion:
             device=device,
             progress=progress,
             top_p=top_p,
-        ):
+        )):
             final = sample
-            if i % 10 == 0:
+            
+
+            if i % logging_freq == 0 and log_verbose:
                 x_t = sample['sample']
                 logits = model.get_logits(x_t)  # bsz, seqlen, vocab
                 cands = th.topk(logits, k=1, dim=-1)
-
-                for seq in cands.indices:
-                    print(seq.squeeze(1).tolist())
-                    print(" ".join([tokenizer.decode(seq.squeeze(1).tolist(), skip_special_tokens=True)]))
-                    break
-            i += 1
+                
+                for j in range(num_samples_to_show):
+                    ids = cands.indices[j].squeeze(1).tolist()
+                    improved_sent = " ".join([tokenizer.decode(ids, skip_special_tokens=True)])
+                    prevs[j].append(f"[step {i}] " + improved_sent)
+                    pprint_sentences(sentences=prevs[j], banner=f"DDPM Denoising Step = {i} | Sample #{j + 1}", sep=' -> ')
+                
 
         return final["sample"]
 

@@ -26,6 +26,8 @@ def create_model_and_diffusion(
     config_name,
     logits_mode,
     init_pretrained,
+    freeze_embeddings,
+    use_pretrained_embeddings,
     **kwargs,
 ):
     model = create_model(
@@ -42,6 +44,8 @@ def create_model_and_diffusion(
         config_name=config_name,
         logits_mode=logits_mode,
         init_pretrained=init_pretrained,
+        freeze_embeddings=freeze_embeddings,
+        use_pretrained_embeddings=use_pretrained_embeddings,
     )
     diffusion = create_gaussian_diffusion(
         steps=diffusion_steps,
@@ -66,28 +70,31 @@ def create_model(
     class_cond,  # TODO for the next version
     num_heads,
     dropout,
-    in_channel=8,
-    out_channel=8,
-    training_mode="diffusion-lm",
-    vocab_size=None,
-    config_name="",
-    logits_mode=1,
-    init_pretrained=False,
+    init_pretrained,
+    freeze_embeddings,
+    use_pretrained_embeddings,
+    in_channel,
+    out_channel,
+    training_mode,
+    vocab_size,
+    config_name,
+    logits_mode,
 ):
 
     return TransformerNetModel(
         in_channels=in_channel,
         model_channels=num_channels,
-        out_channels=(
-            out_channel if not learn_sigma else out_channel * 2
-        ),
+        out_channels=(out_channel if not learn_sigma else out_channel * 2),
         dropout=dropout,
         use_checkpoint=use_checkpoint,
         num_heads=num_heads,
         config_name=config_name,
         vocab_size=vocab_size,
         logits_mode=logits_mode,
-        init_pretrained=init_pretrained
+        init_pretrained=init_pretrained,
+        use_pretrained_embeddings=use_pretrained_embeddings,
+        freeze_embeddings=freeze_embeddings,
+        
     )
 
 
@@ -130,7 +137,7 @@ def create_gaussian_diffusion(
     model_mean_type = None
     if not predict_xstart:
         model_mean_type = gd.ModelMeanType.EPSILON  # predicts noise
-    else: # predicts starting x (x0 estimate, possibly used by DDIM?)
+    else:  # predicts starting x (x0 estimate, possibly used by DDIM?)
         model_mean_type = gd.ModelMeanType.START_X
 
     return SpacedDiffusion(

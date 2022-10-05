@@ -3,38 +3,29 @@ Generate a large batch of image samples from a model and save them as a large
 numpy array. This can be used to produce samples for FID evaluation.
 """
 import os, json
-import pathlib
 from typing import List
-
 import numpy as np
 import torch as th
 import torch.distributed as dist
 from transformers import set_seed
-from src.modeling.diffusion.rounding import load_embeddings_and_tokenizer
-from transformers import AutoTokenizer
-
-from src.utils.test_util import get_weights, denoised_fn_round
-
 from src.utils import dist_util, logger
-from functools import partial
 
 from src.utils.args_utils import *
-from src.train_infer.script_util import (
+from train_infer.factory_methods import (
     create_model_and_diffusion,
 )
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 from src.utils.custom_tokenizer import create_tokenizer
 
 
-# BAD: this should not be global
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-tokenizer = create_tokenizer()
+
 
 
 def main():
-    set_seed(101)
+
     args = create_argparser().parse_args()
 
+    set_seed(args.seed)
     dist_util.setup_dist()
     logger.configure()
 
@@ -48,16 +39,23 @@ def main():
     training_args['model_name_or_path'] = args.model_name_or_path
     training_args["clamp"] = args.clamp
     training_args['out_dir'] = args.out_dir
-
+    training_args['num_samples'] = args.num_samples
+    
     args.__dict__.update(training_args)
     args.sigma_small = True
 
-    logger.log("creating model and diffusion...")
+        
+    logger.info(f"Init pretrained = {args.init_pretrained}")
+    logger.info(f"Freeze embeddings = {args.freeze_embeddings}")
+    logger.info(f"Use pretrained embeddings = {args.use_pretrained_embeddings}")
+    
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     model.load_state_dict(dist_util.load_state_dict(args.model_name_or_path, map_location="cpu"))
 
+    tokenizer = create_tokenizer(args.use_pretrained_embeddings)
+    
     pytorch_total_params = sum(p.numel() for p in model.parameters())
     logger.log(f"the parameter count is {pytorch_total_params}")
 
@@ -66,29 +64,23 @@ def main():
     model.to(dist_util.dev())
     model.eval()  # DEBUG
 
-    embeddings = load_embeddings(
-        checkpoint_path=args.checkpoint_path, emb_dim=args.in_channel, tokenizer=tokenizer
-    )
-    embeddings.weight = th.nn.Parameter(model.word_embedding.weight.clone().cpu())
 
     logger.log("sampling...")
     logger.log(f"Clamping is set to {args.clamp}")
     all_samples = []
-    embeddings_with_grad_false = get_weights(embeddings, args)
     while len(all_samples) * args.batch_size < args.num_samples:
         model_kwargs = {}
-        sample_shape = (args.batch_size, args.sequence_len, args.in_channel)
+        sample_shape = (args.batch_size, args.sequence_len, model.word_embedding.weight.shape[1])
         sample = diffusion.p_sample_loop(
             model,
             sample_shape,
             clip_denoised=args.clip_denoised,
-            denoised_fn=partial(denoised_fn_round, args, embeddings_with_grad_false.cuda())
-            if args.clamp == "clamp"
-            else None,
+            denoised_fn=None,
             model_kwargs=model_kwargs,
             top_p=args.top_p,
             progress=True,
             tokenizer=tokenizer,
+            log_verbose=True
         )
 
 
@@ -109,7 +101,7 @@ def main():
     decoded_sentences = []
 
     for seq in cands.indices:
-        decoded_sentence = tokenizer.decode(seq.squeeze(1).tolist(), skip_special_tokens=True)
+        decoded_sentence = tokenizer.decode(seq.squeeze(1).tolist())
         decoded_sentences.append(decoded_sentence)
 
     dist.barrier()
@@ -138,7 +130,7 @@ def write_outputs(args: dict, sentences: List[str]) -> None:
     model_base_name = os.path.split(args.model_name_or_path)[1]
     
     output_file_basepath = os.path.join(
-        model_dir, f"{model_base_name}.samples_{args.top_p}.steps={args.diffusion_steps}.clamp={args.clamp}"
+        model_dir, f"{model_base_name}.samples_{args.top_p}.steps-{args.diffusion_steps}.clamp-{args.clamp}"
     )
     
     with open(output_file_basepath + ".txt", "w") as text_fout, open(
@@ -149,22 +141,6 @@ def write_outputs(args: dict, sentences: List[str]) -> None:
             json_fout.write(json.dumps([generated_sentence]) + "\n")
 
         print(f"written the decoded output to {output_file_basepath}")
-
-    # print(sentences[:2])
-
-    # with open("generation_outputs_emb128/two_steps_sanity_check.txt", "r") as fin:
-    #     sanity_check_lines = fin.readlines()
-
-    # # compare with sentences
-    # for i, sanity_check_line in enumerate(sanity_check_lines):
-    #     sanity_check_line_toks = set(sanity_check_line.strip().split())
-    #     generated_sentence_toks = set(sentences[i].split())
-
-    #     common = sanity_check_line_toks.intersection(generated_sentence_toks)
-    #     jaccard = len(common) / len(sanity_check_line_toks.union(generated_sentence_toks))
-    #     # assert (
-    #     #     jaccard > 0.9
-    #     # ), f"line {i} is not similar enough: {jaccard} {sanity_check_line_toks} {generated_sentence_toks} | {common}"
 
 
 if __name__ == "__main__":
