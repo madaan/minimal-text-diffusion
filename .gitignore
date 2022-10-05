@@ -4,6 +4,7 @@ wandb/
 checkpoints/
 generation_outputs
 diff_models
+*checkpoints*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
