@@ -2,7 +2,7 @@
 
 
 
-_A minimal implementation of diffusion models of text: given a corpus of text, sample new sentences from the same corpus._
+_A minimal implementation of diffusion models of text: learns a diffusion model of a given text corpus, allowing to generate new text samples from the learned model._
 
 
 
