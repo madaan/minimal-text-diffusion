@@ -4,6 +4,10 @@ wandb/
 checkpoints/
 generation_outputs
 diff_models
+data/
+SWEEP
+ipynb/
+
 *checkpoints*
 
 # Byte-compiled / optimized / DLL files

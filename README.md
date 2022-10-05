@@ -1,22 +1,44 @@
 # Minimal text diffusion
 
-* A minimal implementation of diffusion models of text: given a corpus of text, sample new sentences from the same corpus.
+
+
+_A minimal implementation of diffusion models of text: given a corpus of text, sample new sentences from the same corpus._
 
 
 
-- This repo has been refactored by taking a large amount of code from https://github.com/XiangLi1999/Diffusion-LM (which in turns includes code from a number of repos including: https://github.com/openai/glide-text2im).
+----
 
-- The main idea was to retain just enough code to allow training a simple diffusion model and generating samples, remove image related terms, and make it easier to use.
 
-- I've included an extremely simple corpus (`data/simple-train.txt`) I used for quick iterations and testing.
+| ![diffusion](./minimal-text-diffusion.gif) |
+|:--:|
+| <b> Diffusion in action:</b> a DDPM model gradually denoising random text _`hotnutggy pi greentedsty rawyaented`_ to _`the white eggplant is dried`_ and _`mac clement star fe honey spin theapple purpleip`_ to _`the brown radicchio is sour`_|
+
+
+----
+
+This repo has been refactored by taking a large amount of code from https://github.com/XiangLi1999/Diffusion-LM (which includes some code from: https://github.com/openai/glide-text2im), thanks to the authors for their work!
+
+The main idea was to retain _just enough code_ to allow training a simple diffusion model and generating samples, remove image related terms, and make it easier to use.
+
+ I've included an extremely simple corpus (`data/simple-{train,test}.txt`) I used for quick iterations and testing.
 
 ---
 
 ## Getting started
 
+### Setup
+
+- Install the requirements: `pip install -r requirements.txt`
+
+- Some of the dependencies might be easier to install via conda:
+```sh
+conda install mpi4py
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+```
+
 ### Training
 
-- To train a model, run `scripts/train.sh`. By default, this will train a model on the simple corpus. However, as long as you have a corpus of text, you can train a model on it by specifying the path to the corpus in the `--train_data` argument. Note that you may have to increase the sequence length (`--seq_len`) if your corpus is longer than the simple corpus.
+- To train a model, run `scripts/train.sh`. By default, this will train a model on the simple corpus. However, as long as you have a corpus of text, you can train a model on it by specifying the path to the corpus in the `--train_data` argument. Note that you may have to increase the sequence length (`--seq_len`) if your corpus is longer than the simple corpus. The other default arguments are set to match the best setting I found for the simple corpus (see discussion below).
 
 - Once training finishes, the model will be saved in `ckpts/simple`. You can then use this model to generate samples.
 
@@ -24,7 +46,7 @@
 
 
 
-## Inference
+### Inference
 
 - To generate samples, run:
 
@@ -43,6 +65,9 @@ bash scripts/text_sample.sh ckpts/simple/ema_0.9999_025000.pt 2000 10
 - The generated samples will be saved in `ckpt/simple/`.
 
 - Complete set of outputs are available [here](https://drive.google.com/drive/folders/1UXx1HJVeWdAjlTNTiCydnCCHD431Q4yh?usp=sharing).
+
+---
+
 
 ## Experiments and Results
 
@@ -84,7 +109,9 @@ the black pistachio is dried.
 
 - The model was trained on a single RTX 2080 Ti GPU for 25k steps. The training time was ~1 hours.
 
-## Inner workings
+---
+
+## Gory details
 
 
 * Below are my rough notes on how the code works. [TODO] Clean this up and add more details.
@@ -148,8 +175,13 @@ The process is repeated until `x_0` is generated.
 
 - [ ] Add more details to the inner workings section.
 - [ ] Add classifier-guided sampling.
+- [ ] Add more experiments.
+
 
 ### Opportunities for further minimization
 
 - [ ] `logger.py` can be completely deleted.
 - [ ] `args.py` and `factory_methods.py` can be combined.
+
+
+
