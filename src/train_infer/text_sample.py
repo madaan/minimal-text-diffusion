@@ -54,7 +54,7 @@ def main():
     )
     model.load_state_dict(dist_util.load_state_dict(args.model_name_or_path, map_location="cpu"))
 
-    tokenizer = create_tokenizer(args.use_pretrained_embeddings)
+    tokenizer = create_tokenizer(return_pretokenized=args.use_pretrained_embeddings, path=f"data/{args.dataset}/")
     
     pytorch_total_params = sum(p.numel() for p in model.parameters())
     logger.log(f"the parameter count is {pytorch_total_params}")

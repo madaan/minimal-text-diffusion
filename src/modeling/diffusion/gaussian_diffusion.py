@@ -612,7 +612,6 @@ class GaussianDiffusion:
                     improved_sent = " ".join([tokenizer.decode(ids, skip_special_tokens=True)])
                     prevs[j].append(f"[step {i}] " + improved_sent)
                     pprint_sentences(sentences=prevs[j], banner=f"DDPM Denoising Step = {i} | Sample #{j + 1}", sep=' -> ')
-                
 
         return final["sample"]
 

@@ -26,7 +26,7 @@ DROPOUT=${17:-0.1}
 NUM_HEADS=${18:-4}
 CONFIG_NAME=${19:-"bert-base-uncased"}
 
-
+mkdir -p ${CHECKPOINT_PATH}
 
 
 NOTES=${18:-"Pre-trained models, pre-trained embeddings, embeddings not frozen"}

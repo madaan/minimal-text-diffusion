@@ -4,6 +4,8 @@ Train a diffusion model on images.
 
 import json, os
 import pathlib
+import pprint
+import sys
 from src.utils import dist_util, logger
 from src.modeling.diffusion.resample import create_named_schedule_sampler
 from train_infer.factory_methods import create_model_and_diffusion
@@ -30,7 +32,7 @@ def main():
 
     pathlib.Path(args.checkpoint_path).mkdir(parents=True, exist_ok=True)
 
-    tokenizer = create_tokenizer(return_pretokenized=args.init_pretrained)
+    tokenizer = create_tokenizer(return_pretokenized=args.use_pretrained_embeddings, path=f"data/{args.dataset}/")
 
     train_dataloader = data_utils_sentencepiece.get_dataloader(
         tokenizer=tokenizer,
@@ -48,6 +50,9 @@ def main():
     args.vocab_size = tokenizer.vocab_size
 
     logger.log("creating model and diffusion...")
+    
+
+
     model, diffusion = create_model_and_diffusion(
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
