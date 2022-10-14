@@ -24,6 +24,26 @@ The main idea was to retain _just enough code_ to allow training a simple diffus
 
 ---
 
+
+## Table of Contents
+
+- [Minimal text diffusion](#minimal-text-diffusion)
+  * [Getting started](#getting-started)
+    + [Setup](#setup)
+    + [Training](#training)
+    + [Inference](#inference)
+  * [Experiments and Results](#experiments-and-results)
+  * [Gory details](#gory-details)
+    + [Training](#training-1)
+    + [Evolving input](#evolving-input)
+    + [Sampling](#sampling)
+  * [TODO](#todo)
+    + [Opportunities for further minimization](#opportunities-for-further-minimization)
+  * [Acknowledgements](#acknowledgements)
+  * [License](#license)
+
+---
+
 ## Getting started
 
 ### Setup
@@ -229,3 +249,4 @@ The process is repeated until `x_0` is generated.
 ## License
 
 - MIT License
+
