@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 
-DSET="simple"
+DSET="stable-prompts"
 
 GPU=${1:-0}
 INIT_PRETRAINED_MODEL=${2:-"True"}
@@ -13,7 +13,7 @@ LR=${6:-0.0001}
 DIFFUSION_STEPS=${7:-2000}
 NOISE_SCHEDULE=${8:-sqrt}
 BATCH_SIZE=${9:-64}
-SEQ_LEN=${10:-10}
+SEQ_LEN=${10:-50}
 
 CHECKPOINT_PATH=${11:-"ckpts/${DSET}"}
 TRAIN_TXT_PATH=${12:-data/${DSET}-train.txt}
@@ -25,8 +25,6 @@ SEED=${16:-10708}
 DROPOUT=${17:-0.1}
 NUM_HEADS=${18:-4}
 CONFIG_NAME=${19:-"bert-base-uncased"}
-
-mkdir -p ${CHECKPOINT_PATH}
 
 
 NOTES=${18:-"Pre-trained models, pre-trained embeddings, embeddings not frozen"}
