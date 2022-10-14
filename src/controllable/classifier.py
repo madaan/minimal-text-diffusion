@@ -184,7 +184,7 @@ def train_classifier_on_diffusion_latents():
 
     # Step 3: load the data
     dataloader = get_dataloader(
-        path=f"data/{args.dataset}/{args.dataset}_labeled_sample.tsv", tokenizer=tokenizer,
+        path=f"data/{args.dataset}/{args.dataset}_labeled.tsv", tokenizer=tokenizer,
         max_seq_len=args.sequence_len
         
     )

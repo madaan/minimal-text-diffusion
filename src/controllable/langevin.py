@@ -11,7 +11,7 @@ The classifier model is used to refine the input embeddings such that the logits
 import torch
 
 
-def langevin_classifier(classifier, label_ids, x_t, t, num_langevin_steps: int = 3, step_size: float=1e-1):  # current best.
+def langevin_classifier(classifier, label_ids, x_t, t, num_langevin_steps: int = 3, step_size: float=1e-2):  # current best.
 
     x_t_as_params = torch.nn.Parameter(x_t)
 
