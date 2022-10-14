@@ -17,7 +17,7 @@ def create_argparser():
         microbatch=-1,  # -1 disables microbatches
         ema_rate="0.9999",  # comma-separated list of EMA values
         log_interval=50,
-        save_interval=50000,
+        save_interval=25000,
         resume_checkpoint="",
         use_fp16=False,
         fp16_scale_growth=1e-3,
@@ -27,6 +27,7 @@ def create_argparser():
         checkpoint_path="diff_models",
         train_txt_path="data/quotes_train.txt",
         val_txt_path="data/quotes_valid.txt",
+        dataset="",
         notes="",
     )
     text_defaults = dict(
@@ -99,6 +100,7 @@ def decoding_defaults():
         clamp="clamp",
         preprocessing_num_workers=1,
         emb_scale_factor=1.0,
+        classifier_path="",
     )
 
 

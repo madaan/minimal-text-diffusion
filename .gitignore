@@ -10,6 +10,7 @@ ipynb/
 scripts/
 *ckpt*
 *checkpoints*
+nohup.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
