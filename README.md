@@ -131,6 +131,12 @@ the black pistachio is dried.
 
 ---
 
+## Controllable Generation
+
+- The diffusion model can be combined with a classifier to perform classifier-guided diffusion. Please see details in [docs/controllable.md].
+
+
+
 ## Gory details
 
 
