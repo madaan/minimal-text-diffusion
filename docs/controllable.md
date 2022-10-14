@@ -62,3 +62,29 @@ CUDA_VISIBLE_DEVICES=8 && bash scripts/text_sample.sh ckpts/simplev2/ema_0.9999_
 
 * 50% of the sentences in the guided output contain the color word "green" vs. 69/500 = 14% in the unguided output. Looks like it's working! (recall that green was one of the 4 colors we specified in the classifier for label 1).
 
+
+
+## Implementation Details
+
+- The files relevant to controllable generation are present in `src/controllable/`.
+
+- Listing
+src/controllable/
+├── classifier.py
+├── controllable_text_sample.py
+└── langevin.py
+
+
+* Here:
+- `classifier.py` trains a classifier on the latents of the diffusion model.
+
+- `controllable_text_sample.py` runs controllable generation.
+
+- `langevin.py` refines the embeddings with classifier guidance (using Langevin dynamics). 
+
+
+- At a high level, the procedure is as follows:
+a) `p_sample_loop_langevin_progressive` in `src/modeling/diffusion/gaussian_diffusion.py` first creates an approximate `x_{t-1}` and then calls `langevin_binary_classifier` in `src/controllable/langevin.py`
+
+b) `langevin_binary_classifier` then refines the embeddings with classifier guidance. This is the Langevin dynamics step. $x_{t-1} = x_{t-1} + \epsilon \nabla_x  \log p(y = 1 \mid x_{t-1})$ where $\log p(y \mid x_{t-1})$ is the probability of $y = 1$ given the noisy input $x_{t-1}$. The controllable generation is currently only done for labels = 1, but this can be changed by flipping the labels in `langevin_binary_classifier`. (TODO: add support for dynamic labels).
+
