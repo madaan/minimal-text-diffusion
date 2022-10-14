@@ -37,6 +37,7 @@ The main idea was to retain _just enough code_ to allow training a simple diffus
     + [Training](#training-1)
     + [Evolving input](#evolving-input)
     + [Sampling](#sampling)
+  * [Controllable Generation](#controllable-generation)
   * [TODO](#todo)
     + [Opportunities for further minimization](#opportunities-for-further-minimization)
   * [Acknowledgements](#acknowledgements)
@@ -133,7 +134,7 @@ the black pistachio is dried.
 
 ## Controllable Generation
 
-- The diffusion model can be combined with a classifier to perform classifier-guided diffusion. Please see details in [docs/controllable.md].
+- The diffusion model can be combined with a classifier to perform classifier-guided diffusion. Please see details in [docs/controllable.md](docs/controllable.md).
 
 
 
