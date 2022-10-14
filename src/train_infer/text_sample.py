@@ -11,9 +11,7 @@ from transformers import set_seed
 from src.utils import dist_util, logger
 
 from src.utils.args_utils import *
-from train_infer.factory_methods import (
-    create_model_and_diffusion,
-)
+from train_infer.factory_methods import create_model_and_diffusion
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 from src.utils.custom_tokenizer import create_tokenizer
 
@@ -53,6 +51,7 @@ def main():
         **args_to_dict(args, model_and_diffusion_defaults().keys())
     )
     model.load_state_dict(dist_util.load_state_dict(args.model_name_or_path, map_location="cpu"))
+    model.eval()
 
     tokenizer = create_tokenizer(return_pretokenized=args.use_pretrained_embeddings, path=f"data/{args.dataset}/")
     
@@ -117,10 +116,7 @@ def load_embeddings(checkpoint_path, tokenizer, emb_dim):
 
 
 def read_training_args(config_path):
-    with open(
-        config_path,
-        "rb",
-    ) as f:
+    with open(config_path, "r") as f:
         return json.load(f)
 
 
@@ -129,16 +125,14 @@ def write_outputs(args: dict, sentences: List[str]) -> None:
     model_dir = os.path.split(args.model_name_or_path)[0]
     model_base_name = os.path.split(args.model_name_or_path)[1]
     
+    num_samples = len(sentences)
     output_file_basepath = os.path.join(
-        model_dir, f"{model_base_name}.samples_{args.top_p}.steps-{args.diffusion_steps}.clamp-{args.clamp}"
-    )
-    
-    with open(output_file_basepath + ".txt", "w") as text_fout, open(
-        output_file_basepath + ".json", "w"
-    ) as json_fout:
+        model_dir,
+        f"{model_base_name}.samples_{num_samples}.steps-{args.diffusion_steps}.clamp-{args.clamp}",
+    ) + ".txt"
+    with open(output_file_basepath, "w") as text_fout:
         for generated_sentence in sentences:
             text_fout.write(generated_sentence + "\n")
-            json_fout.write(json.dumps([generated_sentence]) + "\n")
 
         print(f"written the decoded output to {output_file_basepath}")
 
