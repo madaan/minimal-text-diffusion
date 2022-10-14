@@ -1,0 +1,312 @@
+{
+  "version": "1.0",
+  "truncation": {
+    "direction": "Right",
+    "max_length": 512,
+    "strategy": "LongestFirst",
+    "stride": 0
+  },
+  "padding": null,
+  "added_tokens": [
+    {
+      "id": 0,
+      "content": "[UNK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 1,
+      "content": "[CLS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 2,
+      "content": "[SEP]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 3,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    {
+      "id": 4,
+      "content": "[MASK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  ],
+  "normalizer": {
+    "type": "Sequence",
+    "normalizers": [
+      {
+        "type": "NFD"
+      },
+      {
+        "type": "Lowercase"
+      },
+      {
+        "type": "StripAccents"
+      }
+    ]
+  },
+  "pre_tokenizer": {
+    "type": "Sequence",
+    "pretokenizers": [
+      {
+        "type": "Digits",
+        "individual_digits": true
+      },
+      {
+        "type": "Whitespace"
+      }
+    ]
+  },
+  "post_processor": {
+    "type": "TemplateProcessing",
+    "single": [
+      {
+        "SpecialToken": {
+          "id": "[CLS]",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "SpecialToken": {
+          "id": "[SEP]",
+          "type_id": 0
+        }
+      }
+    ],
+    "pair": [
+      {
+        "Sequence": {
+          "id": "A",
+          "type_id": 0
+        }
+      },
+      {
+        "Sequence": {
+          "id": "B",
+          "type_id": 1
+        }
+      }
+    ],
+    "special_tokens": {
+      "[CLS]": {
+        "id": "[CLS]",
+        "ids": [
+          1
+        ],
+        "tokens": [
+          "[CLS]"
+        ]
+      },
+      "[SEP]": {
+        "id": "[SEP]",
+        "ids": [
+          2
+        ],
+        "tokens": [
+          "[SEP]"
+        ]
+      }
+    }
+  },
+  "decoder": null,
+  "model": {
+    "type": "WordLevel",
+    "vocab": {
+      "[UNK]": 0,
+      "[CLS]": 1,
+      "[SEP]": 2,
+      "[PAD]": 3,
+      "[MASK]": 4,
+      ".": 5,
+      "is": 6,
+      "the": 7,
+      "orange": 8,
+      "black": 9,
+      "red": 10,
+      "purple": 11,
+      "pink": 12,
+      "blue": 13,
+      "yellow": 14,
+      "white": 15,
+      "brown": 16,
+      "green": 17,
+      "fried": 18,
+      "-": 19,
+      "dried": 20,
+      "candied": 21,
+      "smoked": 22,
+      "steamed": 23,
+      "turnip": 24,
+      "poached": 25,
+      "deep": 26,
+      "sauteed": 27,
+      "stir": 28,
+      "grilled": 29,
+      "boiled": 30,
+      "browned": 31,
+      "brined": 32,
+      "pickled": 33,
+      "microwaved": 34,
+      "toasted": 35,
+      "barbecued": 36,
+      "braised": 37,
+      "marinated": 38,
+      "fermented": 39,
+      "aged": 40,
+      "blanched": 41,
+      "cured": 42,
+      "roasted": 43,
+      "potato": 44,
+      "coconut": 45,
+      "eggplant": 46,
+      "sweet": 47,
+      "cucumber": 48,
+      "bean": 49,
+      "squash": 50,
+      "kale": 51,
+      "cabbage": 52,
+      "baked": 53,
+      "carrot": 54,
+      "stewed": 55,
+      "bitter": 56,
+      "collard": 57,
+      "cauliflower": 58,
+      "frozen": 59,
+      "pepper": 60,
+      "radish": 61,
+      "spinach": 62,
+      "fluffy": 63,
+      "pea": 64,
+      "cooked": 65,
+      "mustard": 66,
+      "sunflower": 67,
+      "brussels": 68,
+      "soggy": 69,
+      "sprout": 70,
+      "arugula": 71,
+      "spicy": 72,
+      "burnt": 73,
+      "chicory": 74,
+      "celery": 75,
+      "chard": 76,
+      "mushroom": 77,
+      "tomato": 78,
+      "almond": 79,
+      "lettuce": 80,
+      "soybean": 81,
+      "beet": 82,
+      "onion": 83,
+      "lentil": 84,
+      "asparagus": 85,
+      "pumpkin": 86,
+      "sour": 87,
+      "walnut": 88,
+      "zucchini": 89,
+      "hot": 90,
+      "pistachio": 91,
+      "radicchio": 92,
+      "raw": 93,
+      "cashew": 94,
+      "delicious": 95,
+      "yam": 96,
+      "macadamia": 97,
+      "tasty": 98,
+      "broccoli": 99,
+      "soft": 100,
+      "peanut": 101,
+      "creamy": 102,
+      "hazelnut": 103,
+      "artichoke": 104,
+      "rotten": 105,
+      "salty": 106,
+      "yummy": 107,
+      "pecan": 108,
+      "ripe": 109,
+      "sticky": 110,
+      "crispy": 111,
+      "dandelion": 112,
+      "hard": 113,
+      "rutabaga": 114,
+      "endive": 115,
+      "cold": 116,
+      "crunchy": 117,
+      "fresh": 118,
+      "smooth": 119,
+      "garlic": 120,
+      "greasy": 121,
+      "juicy": 122,
+      "ginger": 123,
+      "peach": 124,
+      "clementine": 125,
+      "grape": 126,
+      "watermelon": 127,
+      "grapefruit": 128,
+      "pineapple": 129,
+      "cantaloupe": 130,
+      "cherry": 131,
+      "fig": 132,
+      "lemon": 133,
+      "persimmon": 134,
+      "kiwi": 135,
+      "blackberry": 136,
+      "honeydew": 137,
+      "nectarine": 138,
+      "lychee": 139,
+      "okra": 140,
+      "mango": 141,
+      "plum": 142,
+      "apple": 143,
+      "banana": 144,
+      "pomegranate": 145,
+      "raspberry": 146,
+      "fish": 147,
+      "pomelo": 148,
+      "date": 149,
+      "melon": 150,
+      "jackfruit": 151,
+      "pear": 152,
+      "guava": 153,
+      "tangerine": 154,
+      "avocado": 155,
+      "durian": 156,
+      "papaya": 157,
+      "starfruit": 158,
+      "strawberry": 159,
+      "olive": 160,
+      "apricot": 161,
+      "blueberry": 162,
+      "lime": 163,
+      "tamarind": 164
+    },
+    "unk_token": "[UNK]"
+  }
+}
