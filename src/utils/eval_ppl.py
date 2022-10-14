@@ -135,6 +135,10 @@ if __name__ == '__main__':
     res = dict()
     for file in tqdm(files):
         res[file] = calculate_perplexity_for_file(file)
+        
+    
+    # sort by perplexity
+    res = {k: v for k, v in sorted(res.items(), key=lambda item: item[1]['ppl'])}
     
     for file in res:
         # show a few lines
@@ -156,9 +160,11 @@ if __name__ == '__main__':
         # pick 5 random sentences
         sentences = random.sample(sentences, 5) if len(sentences) > 5 else sentences
         
-        filename = file.split("/")[3]
+        filename = "#".join(file.split("/")[:-1])
         # print row
-        print(f"| {filename} | {', '.join(sentences)} | {res[file]['ppl']} | {res[file]['perc_unique_lines']} | {res[file]['perc_unique_tokens']} |")
+        print('-' * 80)
+        if res[file]['perc_unique_tokens'] > 0:
+            print(f"| {filename} | {', '.join(sentences)} | {res[file]['ppl']} | {res[file]['perc_unique_lines']} | {res[file]['perc_unique_tokens']} |")
         
     
     with open("perplexity.json", "w") as f:
