@@ -6,19 +6,17 @@ import json, os
 import pathlib
 import pprint
 import sys
+import wandb
+from transformers import set_seed
+import os
+
 from src.utils import dist_util, logger
 from src.modeling.diffusion.resample import create_named_schedule_sampler
 from train_infer.factory_methods import create_model_and_diffusion
 from train_loop import TrainLoop
 from src.utils import data_utils_sentencepiece
-import wandb
-
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
-
-from transformers import set_seed
-import os
-
-from utils.custom_tokenizer import create_tokenizer
+from src.utils.custom_tokenizer import create_tokenizer
 
 
 def main():
@@ -38,12 +36,14 @@ def main():
         tokenizer=tokenizer,
         data_path=args.train_txt_path,
         batch_size=args.batch_size,
+        max_seq_len=args.sequence_len
     )
 
     val_dataloader = data_utils_sentencepiece.get_dataloader(
         tokenizer=tokenizer,
         data_path=args.val_txt_path,
         batch_size=args.batch_size,
+        max_seq_len=args.sequence_len
     )
 
 
