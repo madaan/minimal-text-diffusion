@@ -1,53 +1,54 @@
 #!/bin/bash
 set -u
 
-DSET="stable-prompts"
+DSET=${1:-simple}
 
-GPU=${1:-0}
-INIT_PRETRAINED_MODEL=${2:-"True"}
-USE_PRETRAINED_EMBEDDINGS=${3:-"True"}
-FREEZE_EMBEDDINGS=${4:-"False"}
+GPU=${2:-0}
+INIT_PRETRAINED_MODEL=${3:-"True"}
+USE_PRETRAINED_EMBEDDINGS=${4:-"True"}
+FREEZE_EMBEDDINGS=${5:-"False"}
 
-LR_ANNEAL_STEPS=${5:-25001}
-LR=${6:-0.0001}
-DIFFUSION_STEPS=${7:-2000}
-NOISE_SCHEDULE=${8:-sqrt}
-BATCH_SIZE=${9:-64}
-SEQ_LEN=${10:-50}
+LR_ANNEAL_STEPS=${6:-25001}
+LR=${7:-0.0001}
+DIFFUSION_STEPS=${8:-2000}
+NOISE_SCHEDULE=${9:-sqrt}
+BATCH_SIZE=${10:-64}
+SEQ_LEN=${11:-50}
 
-CHECKPOINT_PATH=${11:-"ckpts/${DSET}"}
-TRAIN_TXT_PATH=${12:-data/${DSET}-train.txt}
-VAL_TXT_PATH=${13:-data/${DSET}-test.txt}
-IN_CHANNELS=${14:-128}
-WEIGHT_DECAY=${15:-0.0}
-MODEL_ARCH="transformer"
-SEED=${16:-10708}
-DROPOUT=${17:-0.1}
-NUM_HEADS=${18:-4}
-CONFIG_NAME=${19:-"bert-base-uncased"}
+CHECKPOINT_PATH=${12:-"ckpts/${DSET}"}
+TRAIN_TXT_PATH=${13:-data/${DSET}-train.txt}
+VAL_TXT_PATH=${14:-data/${DSET}-test.txt}
+IN_CHANNELS=${15:-128}
+WEIGHT_DECAY=${16:-0.0}
+SEED=${17:-10708}
+DROPOUT=${18:-0.1}
+NUM_HEADS=${19:-4}
+CONFIG_NAME=${20:-"bert-base-uncased"}
 
 
 NOTES=${18:-"Pre-trained models, pre-trained embeddings, embeddings not frozen"}
 
 mkdir -p ${CHECKPOINT_PATH}
 
-# You can use the following checkpoint path if you're sweeping over hyperparams
+# PLEASE NOTE THE CHECKPOINT PATH!
+# NOTE: You can use the following checkpoint path if you're sweeping over hyperparams
 # ${DSET}_${CHECKPOINT_PATH}/MODEL_PT-${INIT_PRETRAINED_MODEL}_EMBEDS_PT-${USE_PRETRAINED_EMBEDDINGS}-FREEZE_EMBEDS-${FREEZE_EMBEDDINGS}"
 
 
 
 
 ARGS=(--checkpoint_path ${CHECKPOINT_PATH}
-    --model_arch ${MODEL_ARCH}
     --save_interval 50000 --lr ${LR}
     --batch_size ${BATCH_SIZE}
     --diffusion_steps ${DIFFUSION_STEPS}
     --noise_schedule ${NOISE_SCHEDULE}
     --sequence_len ${SEQ_LEN} --seed ${SEED}
-    --dropout ${DROPOUT} --in_channel ${IN_CHANNELS} --out_channel ${IN_CHANNELS}
+    --dropout ${DROPOUT} --in_channel ${IN_CHANNELS}
+    --out_channel ${IN_CHANNELS}
     --weight_decay ${WEIGHT_DECAY}
     --predict_xstart True
     --train_txt_path ${TRAIN_TXT_PATH}
+    --dataset ${DSET}
     --val_txt_path ${VAL_TXT_PATH}
     --num_heads ${NUM_HEADS}
     --config_name ${CONFIG_NAME}
@@ -57,7 +58,7 @@ ARGS=(--checkpoint_path ${CHECKPOINT_PATH}
     --notes \""${NOTES}"\")
 
 
-if [ $LR_ANNEAL_STEPS -eq 0 ]; then
+if [ ${LR_ANNEAL_STEPS} -eq 0 ]; then
     LR_ANNEAL_STEPS=100
     DEBUG=true
 else
