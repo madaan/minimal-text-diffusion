@@ -201,10 +201,10 @@ def train_classifier_on_diffusion_latents():
 
     # Step 5: train the classifier
 
-    model = training_loop(model=model, dataloader=dataloader)
+    model = training_loop(model=model, dataloader=dataloader, num_epochs=args.classifier_num_epochs)
 
     # Step 6: save the model
-    torch.save(model.state_dict(), f"{args.checkpoint_path}/classifier_fixed.pt")
+    torch.save(model.state_dict(), f"{args.checkpoint_path}/classifier.pt")
 
 
 def get_dataloader(path, tokenizer, max_seq_len: int, batch_size=32):
@@ -215,7 +215,7 @@ def get_dataloader(path, tokenizer, max_seq_len: int, batch_size=32):
     )
 
 
-def training_loop(model, dataloader, lr: float = 1e-5, num_epochs: int = 15):
+def training_loop(model, dataloader, num_epochs: int, lr: float = 1e-5):
     from transformers import AdamW
 
     optimizer = AdamW(model.parameters(), lr=lr)

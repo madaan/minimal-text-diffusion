@@ -42,8 +42,14 @@ def create_argparser():
         preprocessing_num_workers=1,
         tok_thresh=150
     )
+    
+    guided_generation_defaults = dict(
+        classifier_num_epochs=15
+    )
+    
     defaults.update(model_and_diffusion_defaults())
     defaults.update(text_defaults)
+    defaults.update(guided_generation_defaults)
     defaults.update(decoding_defaults())
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true")

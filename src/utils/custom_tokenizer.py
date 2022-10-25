@@ -1,4 +1,5 @@
 import json
+import logging
 import pathlib
 import torch
 from transformers import AutoTokenizer
@@ -6,6 +7,19 @@ from transformers import AutoTokenizer
 from tokenizers.processors import BertProcessing
 from tokenizers import ByteLevelBPETokenizer, decoders
 
+logging.basicConfig(level=logging.INFO)
+
+def create_tokenizer(return_pretokenized, path, tokenizer_type: str = "word-level"):
+    if return_pretokenized:
+        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        return tokenizer
+
+    if tokenizer_type == "byte-level":
+        return read_byte_level(path)
+    elif tokenizer_type == "word-level":
+        return read_word_level(path)
+    else:
+        raise ValueError(f"Invalid tokenizer type: {tokenizer_type}")
 
 def train_bytelevel(
     path,
@@ -26,16 +40,6 @@ def train_bytelevel(
 
     tokenizer.save_model(str(pathlib.Path(path).parent))
 
-
-def create_tokenizer(return_pretokenized, path, tokenizer_type: str = "word-level"):
-    if return_pretokenized:
-        tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-        return tokenizer
-
-    if tokenizer_type == "byte-level":
-        return read_byte_level(path)
-    elif tokenizer_type == "word-level":
-        return read_word_level(path)
 
 
 def read_byte_level(path: str):
@@ -98,6 +102,7 @@ def read_word_level(path: str):
 
     from transformers import PreTrainedTokenizerFast
 
+    logging.info(f"Loading tokenizer from {path}/word-level-vocab.json")
     tokenizer = PreTrainedTokenizerFast(
         tokenizer_file=f"{str(pathlib.Path(path))}/word-level-vocab.json",
         bos_token="[CLS]",

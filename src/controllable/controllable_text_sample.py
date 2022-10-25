@@ -17,7 +17,7 @@ from src.utils.args_utils import *
 from train_infer.factory_methods import create_model_and_diffusion
 from src.utils.args_utils import create_argparser, args_to_dict, model_and_diffusion_defaults
 from src.utils.custom_tokenizer import create_tokenizer
-from src.controllable.langevin import langevin_classifier
+from src.controllable.langevin import langevin_binary_classifier
 from src.controllable.classifier import DiffusionBertForSequenceClassification
 
 
@@ -54,25 +54,26 @@ def main():
     )
     model.load_state_dict(dist_util.load_state_dict(args.model_name_or_path, map_location="cpu"))
     model.eval()
-    
+
     tokenizer = create_tokenizer(
         return_pretokenized=args.use_pretrained_embeddings, path=f"data/{args.dataset}/"
     )
-  
 
-    model.config.update({'embedding_dim': args.in_channel})
-    model.config.update({'train_diffusion_steps': args.diffusion_steps})
+    model.config.update({"embedding_dim": args.in_channel})
+    model.config.update({"train_diffusion_steps": args.diffusion_steps})
     model.config.update({"vocab_size": tokenizer.vocab_size})
-  
+
     classifier = DiffusionBertForSequenceClassification.load_from_checkpoint(
-        checkpoint_path=args.checkpoint_path + "/classifier.pt", config=model.config, diffusion_model=diffusion    ).to("cuda")
-    
+        checkpoint_path=args.checkpoint_path + "/classifier.pt",
+        config=model.config,
+        diffusion_model=diffusion,
+    ).to("cuda")
+
     # freeze the classifier
     for param in classifier.parameters():
         param.requires_grad = False
 
-    
-    langevin_classifier_wrapper = partial(langevin_classifier, classifier=classifier)
+    langevin_classifier_wrapper = partial(langevin_binary_classifier, classifier=classifier)
 
     pytorch_total_params = sum(p.numel() for p in model.parameters())
     logger.log(f"the parameter count is {pytorch_total_params}")
@@ -105,7 +106,6 @@ def main():
         dist.all_gather(gathered_samples, sample)  # gather not supported with NCCL
         all_samples.extend([sample.cpu().numpy() for sample in gathered_samples])
 
-    
     logger.log(f"created {len(all_samples)} samples")
 
     arr = np.concatenate(all_samples, axis=0)
@@ -145,10 +145,13 @@ def write_outputs(args: dict, sentences: List[str]) -> None:
     model_base_name = os.path.split(args.model_name_or_path)[1]
 
     num_samples = len(sentences)
-    output_file_basepath = os.path.join(
-        model_dir,
-        f"{model_base_name}.samples_{num_samples}.steps-{args.diffusion_steps}.clamp-{args.clamp}",
-    ) + ".txt.ctrl"
+    output_file_basepath = (
+        os.path.join(
+            model_dir,
+            f"{model_base_name}.samples_{num_samples}.steps-{args.diffusion_steps}.clamp-{args.clamp}",
+        )
+        + ".txt.ctrl"
+    )
 
     with open(output_file_basepath, "w") as text_fout:
         for generated_sentence in sentences:

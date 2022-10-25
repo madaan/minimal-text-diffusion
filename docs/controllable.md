@@ -1,8 +1,17 @@
 ## Classifier-guided Controllable Generation
 
-* The unconditional generation is used to sample some sentences from a distribution of interest. However, a more interesting task is to generate sentences that satisfy some constraints. For example, we may want to generate sentences that contain a certain color word.
+* The unconditional generation is used to sample some sentences from a distribution of interest. However, a more interesting task is to generate sentences that satisfy some constraints. For example, we may want to generate sentences containing a certain color.
 
-- Say, we want to generate sentences that contain {"red", "blue", "green", "white"}.
+- For this walkthrough, let's say we want to generate sentences that contain {"red", "blue", "green", "white"}. We create such a labeled dataset in `data/simple/simple_labeled.tsv`.
+
+```sh
+$ shuf data/simple/simple_labeled.tsv|head -2
+The purple pumpkin is juicy.    0
+The green pear is sweet.        1
+```
+- The labeled file is required to train a classifier. In general, if you are working with a dataset name `dset`, a labeled file should be present at `data/{dset}/dset_labeled.tsv` with two columns (sentence and label).
+
+Let's start!
 
 ### Step 0: Train a diffusion model. 
 
@@ -18,7 +27,11 @@
 python -u src/controllable/classifier.py --model_name_or_path ckpts/simplev2/ema_0.9999_005001.pt
 ```
 
-* This trains a classifier on the latents of the diffusion model. The name of the dataset and other hyperparameters are loaded from the diffusion model's config file (`ckpts/simplev2/ema_0.9999_005001.pt`).
+* This trains a classifier on the latent/noisy samples ($$x_t$$).
+
+- It is sufficient to only specify the checkpoint! The name of the dataset and other hyperparameters are loaded from the diffusion model's config file (`ckpts/simplev2/ema_0.9999_005001.pt`). However, the classifier does require the labeled file to be present at `data/{dset}/dset_labeled.tsv`.
+
+- The classifier is saved at `ckpts/simplev2/classifier.pt`.
 
 
 ### Step 2: Run controllable generation
@@ -27,11 +40,11 @@ python -u src/controllable/classifier.py --model_name_or_path ckpts/simplev2/ema
 bash scripts/ctrl_text_sample.sh ckpts/simplev2/ema_0.9999_005001.pt 300 50
  ```
 
-- Note that we are using only 300 diffusion steps vs. 2000 used for training. This works because the decoding is actually DDIM style. At each step, we approximate `x0`, which is used for denoising.
+- Note that we use only 300 diffusion steps vs. 2000 for training. This works because the decoding is actually DDIM style: we approximate `x0` at each step, which is used for denoising.
 
 - The outputs are generated at: `ckpts/simplev2/ema_0.9999_005001.pt.samples_50.steps-300.clamp-no_clamp.txt.ctrl`. 
 
-- Let's also generate 500 samples from unguided model for comparison:
+- Let's also generate 500 samples from the unguided model for comparison:
 
 ```sh
 CUDA_VISIBLE_DEVICES=8 && bash scripts/text_sample.sh ckpts/simplev2/ema_0.9999_005001.pt 300 500
@@ -40,7 +53,7 @@ CUDA_VISIBLE_DEVICES=8 && bash scripts/text_sample.sh ckpts/simplev2/ema_0.9999_
 * Let's compare the outputs of the two models:
 
 ```sh
-# top 5 colors in unguided output:
+# top 5 colors in the unguided output:
 
 (diffusion) amadaan@sa:~/home2/minimal-text-diffusion$ cut -f3 -d" " ckpts/simplev2/ema_0.9999_005001.pt.samples_500.steps-300.clamp-no_clamp.txt | sort | uniq -c | sed 's/^\s*//g' | sort -n|tail -5
 30 purple
@@ -51,7 +64,7 @@ CUDA_VISIBLE_DEVICES=8 && bash scripts/text_sample.sh ckpts/simplev2/ema_0.9999_
 ```
 
 ```sh
-# top 5 colors in guided output:
+# top 5 colors in the guided output:
 (diffusion) amadaan@sa:~/home2/minimal-text-diffusion$ cut -f3 -d" " ckpts/simplev2/ema_0.9999_005001.pt.samples_500.steps-300.clamp-no_clamp.txt.ctrl.sample1 | sort | uniq -c | sed 's/^\s*//g' | sort -n|tail -5
 15 pink
 16 black
@@ -60,13 +73,13 @@ CUDA_VISIBLE_DEVICES=8 && bash scripts/text_sample.sh ckpts/simplev2/ema_0.9999_
 269 green
 ```
 
-* 50% of the sentences in the guided output contain the color word "green" vs. 69/500 = 14% in the unguided output. Looks like it's working! (recall that green was one of the 4 colors we specified in the classifier for label 1).
+* 50% of the sentences in the guided output contain the color word "green" vs. 69/500 = 14% in the unguided output. It looks like it's working! (recall that green was one of the 4 colors we specified in the classifier for label 1).
 
 
 
 ## Implementation Details
 
-- The files relevant to controllable generation are present in `src/controllable/`.
+- The files relevant to controllable generation are in `src/controllable/`.
 
 - Listing
 src/controllable/

@@ -88,3 +88,31 @@ i's greetings a you
 
 * Not bad for a model trained for 5000 steps on a small dataset!
 
+
+
+
+## Controllable generation
+
+- Let's perform controllable generation. Say we only want sentences that contain the word `good`. We assign `1` to such sentences and create a labeled file here: `data/greetings/greetings_labeled.tsv`
+
+
+
+### Step 1: Train a classifier on the latents
+
+```sh
+python -u src/controllable/classifier.py --model_name_or_path ckpts/greetings/ema_0.9999_005000.pt --classifier_num_epochs 50 
+```
+
+- We are using the diffusion model trained above to train the classifier. Note that we don't really use the denoising process during training the classifier. We are only using the diffusion model to get the latents (i.e., run the forward or generative process).
+
+### Step 2: Run generation!
+
+
+```sh
+bash scripts/ctrl_text_sample.sh ckpts/greetings/ema_0.9999_005000.pt 300 50
+```
+
+
+## TODO
+
+- [ ] Expose arguments of the langevin function.

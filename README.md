@@ -18,7 +18,7 @@ _A minimal implementation of diffusion models of text: learns a diffusion model 
 
 This repo has been refactored by taking a large amount of code from https://github.com/XiangLi1999/Diffusion-LM (which includes some code from: https://github.com/openai/glide-text2im), thanks to the authors for their work!
 
-The main idea was to retain _just enough code_ to allow training a simple diffusion model and generating samples, remove image related terms, and make it easier to use.
+The main idea was to retain _just enough code_ to allow training a simple diffusion model and generating samples, remove image-related terms, and make it easier to use.
 
  I've included an extremely simple corpus (`data/simple-{train,test}.txt`) I used for quick iterations and testing.
 
@@ -62,7 +62,7 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 
 ### Preparing dataset
 
-- We will use `data/simple.txt` as a running example. To begin, we need to create a tokenizer over the dataset. I found word-level tokenization to work best, but the implementation in `src/utils/custom_tokenizer` includes options to create BPE tokenizer.
+- We will use `data/simple.txt` as a running example. To begin, we need to create a tokenizer over the dataset. I found that word-level tokenization works best, but the implementation in `src/utils/custom_tokenizer` includes options to create BPE tokenizer.
 
 
 ```sh
@@ -72,7 +72,7 @@ python src/utils/custom_tokenizer.py train-word-level data/simple/simple.txt
 
 ### Training
 
-- To train a model, run `scripts/train.sh`. By default, this will train a model on the simple corpus. However, as long as you have a corpus of text, you can train a model on it by specifying the path to the corpus in the `--train_data` argument. Note that you may have to increase the sequence length (`--seq_len`) if your corpus is longer than the simple corpus. The other default arguments are set to match the best setting I found for the simple corpus (see discussion below).
+- To train a model, run `scripts/train.sh`. By default, this will train a model on the `simple` corpus. However, you can change this to any text file using  `--train_data` argument. Note that you may have to increase the sequence length (`--seq_len`) if your corpus is longer than the simple corpus. The other default arguments are set to match the best setting I found for the simple corpus (see discussion below).
 
 - Once training finishes, the model will be saved in `ckpts/simple`. You can then use this model to generate samples.
 
@@ -101,7 +101,7 @@ bash scripts/text_sample.sh ckpts/simple/ema_0.9999_025000.pt 2000 10
 - Complete set of outputs are available [here](https://drive.google.com/drive/folders/1UXx1HJVeWdAjlTNTiCydnCCHD431Q4yh?usp=sharing).
 
 
-## Training from scratch on greetings dataset
+## Training from scratch on the greetings dataset
 
 - I've added another trainign from scratch tutorial here: [greetings](./docs/training_on_your_own_dataset.md).
 
@@ -125,11 +125,11 @@ bash scripts/text_sample.sh ckpts/simple/ema_0.9999_025000.pt 2000 10
 
 * Using random `t`, a noisy version of the input is created from q(x_t | x_0). This is simply x_t = x_0 * sqrt(1 - \beta_t) + \epsilon_t * sqrt(\beta_t). The function used for this is `q_sample`. Any operation that involves going ahead in the diffusion process is carried out by functions that start with `q_`.
 
-* `x_t` is fed to the transformer model. The transformer model is trained to generate an approximation of `x_start` given `x_t` and `t` (the timestep). Specifically, the embedded text is passed through a BERT encoder, and then downsampled. The size of the output embeddings and input embeddings is obviously the same for this reason. Maybe this is the trick mentioned in the paper where they want to tie each weight with the `x_start` term, but I'm not sure how it's different from DDIM.
+* `x_t` is fed to the transformer model. Then, the transformer model is trained to generate an approximation of `x_start` given `x_t` and `t` (the timestep). Specifically, the embedded text is passed through a BERT encoder and downsampled. The size of the output embeddings and input embeddings is the same for this reason. Maybe this is the trick mentioned in the paper where they want to tie each weight with the `x_start` term, but I'm not sure how it's different from DDIM.
 
 * The loss has several terms:
 1) Difference between the actual `x_start` and the output of the transformer model. This is the MSE loss.
-2) Mean of the `xT` should be close to zero. This is the `tT_loss` term. It is obtained by calling `q_mean_variance` for the t=T. `q_mean_variance` is like `q_sample` but it returns the mean and variance of the distribution `x_t | x0`  instead of a sample.
+2) Mean of the `xT` should be close to zero. This is the `tT_loss` term. It is obtained by calling `q_mean_variance` for the t=T. `q_mean_variance` is like `q_sample,` but it returns the mean and variance of the distribution `x_t | x0`  instead of a sample.
 
 3) Decoder NLL loss. This is the `decoder_nll` term. It is obtained by calling `token_discrete_loss`. `token_discrete_loss` calls `get_logits`, which in turns uses the embeddings to convert to logits. The logits are then used to calculate the NLL loss. Essentially this is how the embeddings are trained.
 
@@ -152,12 +152,12 @@ They are identical! Intuitively, the model is trained to predict the embedded in
 
 ### Evolving input
 
-- Note that the embeddings are *trained*. In training losses, although initial embeddings are passed, they are not used. Instead, the `get_embeds` method is used to get the embeddings. This is because the embeddings are trained to predict the input text. Thus, the embeddings are not the same as the input embeddings.
+- Note that the embeddings are *trained*. Although initial embeddings are passed in training losses, they are not used. Instead, the `get_embeds` method is used to get the embeddings. This is because the embeddings are trained to predict the input text. Thus, the embeddings are not the same as the input embeddings.
 
 
 ### Sampling
 
-* `p_mean_variance`: returns the distribution `p(x_{t-1} | x_t)` (the mean and variance). In addition, returns prediction for the initial `x_0`.
+* `p_mean_variance`: returns the distribution `p(x_{t-1} | x_t)` (the mean and variance). In addition, returns a prediction for the initial `x_0`.
 
 * `q_posterior_mean_variance`: returns the distribution `q(x_{t-1} | x_t, x_0)`. 
 
@@ -193,7 +193,7 @@ The process is repeated until `x_0` is generated.
 ## Acknowledgements
 
 - Thanks to the team behind [Diffusion-LM Improves Controllable Text Generation](http://arxiv.org/abs/2205.14217) for releasing their code, which I used as a starting point.
-- Thanks to the authors of a number of open source implementations of DDPM/DDIM, helpful blogs and videos. Some of the ones I bookmarked are:
+- Thanks to the authors of several open-source implementations of DDPM/DDIM, helpful blogs, and videos. Some of the ones I bookmarked are:
 
 | **Title** | **Url** |
 |:---:|:---:|
