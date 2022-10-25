@@ -46,10 +46,10 @@ Some boolean options may appear redundant, but they allow interesting ablations 
 * After starting the job, you should see a wandb URL. This is where you can monitor the training progress. The training process is also displayed on the terminal.
 
 
-- ![training_loop](docs/imgs/greetings_training_loop.png)
+- ![training_loop](imgs/greetings_training_loop.png)
 
 
-- ![training_finished](docs/imgs/greetings_training_finished.png)
+- ![training_finished](imgs/greetings_training_finished.png)
 
 
 
