@@ -28,12 +28,13 @@ The main idea was to retain _just enough code_ to allow training a simple diffus
 ## Table of Contents
 
 - [Minimal text diffusion](#minimal-text-diffusion)
+  * [Table of Contents](#table-of-contents)
   * [Getting started](#getting-started)
     + [Setup](#setup)
     + [Preparing dataset](#preparing-dataset)
     + [Training](#training)
     + [Inference](#inference)
-  * [Training from scratch on greetings dataset](#training-from-scratch-on-greetings-dataset)
+  * [Training from scratch on the greetings dataset](#training-from-scratch-on-the-greetings-dataset)
   * [Experiments with using pre-trained models and embeddings](#experiments-with-using-pre-trained-models-and-embeddings)
   * [Controllable Generation](#controllable-generation)
   * [Gory details](#gory-details)
@@ -44,7 +45,6 @@ The main idea was to retain _just enough code_ to allow training a simple diffus
     + [Opportunities for further minimization](#opportunities-for-further-minimization)
   * [Acknowledgements](#acknowledgements)
   * [License](#license)
-
 
 ---
 
