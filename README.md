@@ -30,18 +30,21 @@ The main idea was to retain _just enough code_ to allow training a simple diffus
 - [Minimal text diffusion](#minimal-text-diffusion)
   * [Getting started](#getting-started)
     + [Setup](#setup)
+    + [Preparing dataset](#preparing-dataset)
     + [Training](#training)
     + [Inference](#inference)
-  * [Experiments and Results](#experiments-and-results)
+  * [Training from scratch on greetings dataset](#training-from-scratch-on-greetings-dataset)
+  * [Experiments with using pre-trained models and embeddings](#experiments-with-using-pre-trained-models-and-embeddings)
+  * [Controllable Generation](#controllable-generation)
   * [Gory details](#gory-details)
     + [Training](#training-1)
     + [Evolving input](#evolving-input)
     + [Sampling](#sampling)
-  * [Controllable Generation](#controllable-generation)
   * [TODO](#todo)
     + [Opportunities for further minimization](#opportunities-for-further-minimization)
   * [Acknowledgements](#acknowledgements)
   * [License](#license)
+
 
 ---
 
