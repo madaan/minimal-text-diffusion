@@ -1,11 +1,11 @@
-- type: software
-  id: "minimal_text_diffusion2022"
-  author:
-    - family-names: Madaan
-      given-names: Aman
-  doi: 10.5281/zenodo.7374939
-  month: 12
-  title: "Minimal text diffusion"
-  url: https://github.com/madaan/minimal-text-diffusion
-  version: 0.1
-  year: 2022
+type: software
+id: "minimal_text_diffusion2022"
+author:
+  - family-names: Madaan
+    given-names: Aman
+doi: 10.5281/zenodo.7374939
+month: 12
+title: "Minimal text diffusion"
+url: https://github.com/madaan/minimal-text-diffusion
+version: 0.1
+year: 2022
