@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 type: software
 id: "minimal_text_diffusion2022"
-author:
+authors:
   - family-names: Madaan
     given-names: Aman
 doi: 10.5281/zenodo.7374939
